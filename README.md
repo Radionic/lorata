@@ -51,6 +51,7 @@ task-name.zip
 Install [pnpm](https://pnpm.io/installation) first, then run:
 
 ```bash
+cp .env.example .env
 pnpm install
 pnpm db:push
 pnpm dev
