@@ -11,12 +11,10 @@ import { useState } from "react";
 
 export interface ImageEditorDrawToolbarProps {
   brushSize: number;
-  brushOpacity: number;
   brushColor: string;
   canUndo?: boolean;
   canRedo?: boolean;
   onBrushSizeChange?: (size: number) => void;
-  onBrushOpacityChange?: (opacity: number) => void;
   onBrushColorChange?: (color: string) => void;
   onUndo?: () => void;
   onRedo?: () => void;
@@ -25,12 +23,10 @@ export interface ImageEditorDrawToolbarProps {
 
 export function ImageEditorDrawToolbar({
   brushSize,
-  brushOpacity,
   brushColor,
   canUndo,
   canRedo,
   onBrushSizeChange,
-  onBrushOpacityChange,
   onBrushColorChange,
   onUndo,
   onRedo,
@@ -51,21 +47,6 @@ export function ImageEditorDrawToolbar({
           className="w-20"
         />
         <span className="text-sm text-muted-foreground w-8">{brushSize}</span>
-      </div>
-
-      <div className="flex items-center gap-2">
-        <label className="text-sm font-medium">Opacity:</label>
-        <Slider
-          value={[brushOpacity * 100]}
-          onValueChange={(value) => onBrushOpacityChange?.(value[0] / 100)}
-          max={100}
-          min={5}
-          step={5}
-          className="w-20"
-        />
-        <span className="text-sm text-muted-foreground w-8">
-          {Math.round(brushOpacity * 100)}%
-        </span>
       </div>
 
       <Popover open={showColorPicker} onOpenChange={setShowColorPicker}>

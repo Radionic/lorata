@@ -22,7 +22,6 @@ export interface DrawingData {
   points: number[];
   color: string;
   strokeWidth: number;
-  opacity?: number;
   tool: "pen" | "eraser";
 }
 
@@ -37,6 +36,7 @@ export const ImageEditorDraw = forwardRef<
   }
 >(function ({ imageEl }, ref) {
   const stageRef = useRef<Konva.Stage>(null);
+  const drawLayerRef = useRef<Konva.Layer>(null);
   const [stageScale, setStageScale] = useState(1);
   const {
     containerRef,
@@ -46,14 +46,8 @@ export const ImageEditorDraw = forwardRef<
   const imageX = (viewportWidth - imageEl.width) / 2;
   const imageY = (viewportHeight - imageEl.height) / 2;
 
-  const {
-    brushSize,
-    setBrushSize,
-    brushOpacity,
-    setBrushOpacity,
-    brushColor,
-    setBrushColor,
-  } = useDrawingSettings();
+  const { brushSize, setBrushSize, brushColor, setBrushColor } =
+    useDrawingSettings();
 
   const {
     drawings,
@@ -67,7 +61,6 @@ export const ImageEditorDraw = forwardRef<
   } = useDrawingCanvas({
     brushColor,
     brushSize,
-    brushOpacity,
     enabled: true,
   });
 
@@ -168,6 +161,24 @@ export const ImageEditorDraw = forwardRef<
     const stage = stageRef.current;
     if (!stage) return;
 
+    // Temporarily force pen strokes to full opacity and "source-over" for export
+    const drawLayer = drawLayerRef.current;
+    const toRestore: {
+      line: Konva.Line;
+      opacity: number;
+    }[] = [];
+    if (drawLayer) {
+      const lines = drawLayer.find<Konva.Line>("Line");
+      lines.forEach((line) => {
+        if (line.getAttr("globalCompositeOperation") !== "destination-out") {
+          toRestore.push({ line, opacity: line.opacity() });
+          line.opacity(1);
+          line.setAttr("globalCompositeOperation", "source-over");
+        }
+      });
+      drawLayer.batchDraw();
+    }
+
     // Compute crop in current screen-space using stage transform
     const scale = stage.scaleX() || 1;
     const pos = stage.position();
@@ -187,6 +198,15 @@ export const ImageEditorDraw = forwardRef<
       pixelRatio,
     });
 
+    // Restore display opacities after export snapshot
+    if (toRestore.length) {
+      toRestore.forEach(({ line, opacity }) => {
+        line.opacity(opacity);
+        line.setAttr("globalCompositeOperation", "xor");
+      });
+      drawLayer?.batchDraw();
+    }
+
     const response = await fetch(dataURL);
     return await response.blob();
   };
@@ -200,12 +220,10 @@ export const ImageEditorDraw = forwardRef<
       {/* Toolbar */}
       <ImageEditorDrawToolbar
         brushSize={brushSize}
-        brushOpacity={brushOpacity}
         brushColor={brushColor}
         canUndo={canUndo}
         canRedo={canRedo}
         onBrushSizeChange={setBrushSize}
-        onBrushOpacityChange={setBrushOpacity}
         onBrushColorChange={setBrushColor}
         onUndo={handleUndo}
         onRedo={handleRedo}
@@ -242,6 +260,7 @@ export const ImageEditorDraw = forwardRef<
           </Layer>
 
           <Layer
+            ref={drawLayerRef}
             clipX={imageX}
             clipY={imageY}
             clipWidth={imageEl.width}
@@ -253,12 +272,14 @@ export const ImageEditorDraw = forwardRef<
                 points={drawing.points}
                 stroke={drawing.color}
                 strokeWidth={drawing.strokeWidth}
-                opacity={drawing.tool === "eraser" ? 1 : drawing.opacity || 1}
+                opacity={drawing.tool === "eraser" ? 1 : 0.5}
                 tension={0.5}
                 lineCap="round"
                 lineJoin="round"
                 globalCompositeOperation={
-                  drawing.tool === "eraser" ? "destination-out" : "source-over"
+                  drawing.tool === "eraser" ? "destination-out" : "xor"
+                  // "xor" is for display only (so that overlapping lines won't darken the color)
+                  // it will be changed to "source-over" when exporting
                 }
               />
             ))}

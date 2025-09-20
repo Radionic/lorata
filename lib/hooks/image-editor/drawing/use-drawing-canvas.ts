@@ -10,12 +10,10 @@ export interface CursorPosition {
 export const useDrawingCanvas = ({
   brushColor,
   brushSize,
-  brushOpacity,
   enabled,
 }: {
   brushColor: string;
   brushSize: number;
-  brushOpacity: number;
   enabled?: boolean;
 }) => {
   const [isDrawing, setIsDrawing] = useState(false);
@@ -53,7 +51,6 @@ export const useDrawingCanvas = ({
       points: [worldPos.x, worldPos.y],
       color: brushColor,
       strokeWidth: brushSize,
-      opacity: brushOpacity,
       tool: shouldErase ? "eraser" : "pen",
     };
     setDrawings((prev) => [...prev, newDrawing]);
