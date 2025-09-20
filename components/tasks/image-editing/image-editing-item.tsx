@@ -2,7 +2,6 @@
 
 import { Trash2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { ImageUploadArea } from "@/components/image-upload-area";
@@ -12,6 +11,7 @@ import {
   useDeleteTaskItem,
   useUpdateTaskItem,
 } from "@/lib/queries/use-task-item";
+import { Textarea } from "@/components/ui/textarea";
 
 interface ImageEditItemProps {
   item: ImageEditingTaskItem;
@@ -124,12 +124,12 @@ export function ImageEditItem({ item, taskId }: ImageEditItemProps) {
             >
               Edit Instruction
             </Label>
-            <Input
+            <Textarea
               id={`instruction-${item.id}`}
               placeholder="Describe the editing task..."
               defaultValue={item.data.instruction}
               onBlur={(e) => handleInstructionChanged(e.target.value)}
-              className="w-full"
+              className="w-full field-sizing-content resize-none min-h-0"
             />
           </div>
         </div>
