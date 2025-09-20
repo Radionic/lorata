@@ -14,6 +14,8 @@ import { useHistory } from "@/lib/hooks/use-history";
 import { useDrawingCanvas } from "@/lib/hooks/image-editor/drawing/use-drawing-canvas";
 import { useDrawingSettings } from "@/lib/hooks/image-editor/drawing/use-drawing-settings";
 import { ImageEditorDrawToolbar } from "./image-editor-draw-toolbar";
+import { useContainerViewport } from "@/lib/hooks/use-container-viewport";
+import { computeFitScale } from "@/lib/fit";
 
 export interface DrawingData {
   id: string;
@@ -36,10 +38,13 @@ export const ImageEditorDraw = forwardRef<
 >(function ({ imageEl }, ref) {
   const stageRef = useRef<Konva.Stage>(null);
   const [stageScale, setStageScale] = useState(1);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [viewport, setViewport] = useState({ width: 0, height: 0 });
-  const imageX = (viewport.width - imageEl.width) / 2;
-  const imageY = (viewport.height - imageEl.height) / 2;
+  const {
+    containerRef,
+    width: viewportWidth,
+    height: viewportHeight,
+  } = useContainerViewport();
+  const imageX = (viewportWidth - imageEl.width) / 2;
+  const imageY = (viewportHeight - imageEl.height) / 2;
 
   const {
     brushSize,
@@ -69,34 +74,17 @@ export const ImageEditorDraw = forwardRef<
   const { saveToHistory, undo, redo, canUndo, canRedo } =
     useHistory<DrawingData>();
 
-  // Measure container size to keep Stage in sync with visible area
-  useEffect(() => {
-    const el = containerRef.current;
-    if (!el) return;
-    const update = () =>
-      setViewport({ width: el.clientWidth, height: el.clientHeight });
-    update();
-    const ro = new ResizeObserver(update);
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, []);
-
   // Fit the image to the viewport initially and when viewport changes
   useEffect(() => {
     const stage = stageRef.current;
-    if (!stage || !imageEl) return;
+    if (!stage) return;
 
-    const viewportW = viewport.width;
-    const viewportH = viewport.height;
-    if (!viewportW || !viewportH || !imageEl.width || !imageEl.height) return;
-
-    // Add small padding so the image is slightly smaller than the container
-    const padding = 16; // px on each side
-    const availableW = Math.max(0, viewportW - padding * 2);
-    const availableH = Math.max(0, viewportH - padding * 2);
-    const fitScale = Math.min(
-      availableW / imageEl.width,
-      availableH / imageEl.height
+    const fitScale = computeFitScale(
+      viewportWidth,
+      viewportHeight,
+      imageEl.width,
+      imageEl.height,
+      { margin: 16 }
     );
 
     stage.scale({ x: fitScale, y: fitScale });
@@ -104,12 +92,12 @@ export const ImageEditorDraw = forwardRef<
 
     // Center the stage so the image (centered in stage at scale 1) remains centered
     const pos = {
-      x: (viewportW - viewportW * fitScale) / 2,
-      y: (viewportH - viewportH * fitScale) / 2,
+      x: (viewportWidth - viewportWidth * fitScale) / 2,
+      y: (viewportHeight - viewportHeight * fitScale) / 2,
     };
     stage.position(pos);
     stage.batchDraw();
-  }, [imageEl, viewport.width, viewport.height]);
+  }, [imageEl, viewportWidth, viewportHeight]);
 
   const _handleMouseUp = () => {
     handleMouseUp();
@@ -231,8 +219,8 @@ export const ImageEditorDraw = forwardRef<
       >
         <Stage
           ref={stageRef}
-          width={viewport.width}
-          height={viewport.height}
+          width={viewportWidth}
+          height={viewportHeight}
           onMouseDown={handleMouseDown}
           onMouseMove={handleMouseMove}
           onMouseUp={_handleMouseUp}

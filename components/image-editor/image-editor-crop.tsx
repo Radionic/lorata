@@ -1,10 +1,12 @@
 "use client";
 
 import "react-image-crop/dist/ReactCrop.css";
-import { forwardRef, useImperativeHandle, useState } from "react";
+import { forwardRef, useImperativeHandle, useState, useMemo } from "react";
 import ReactCrop, { PixelCrop } from "react-image-crop";
 import { ImageEditorCropToolbar } from "./image-editor-crop-toolbar";
 import { useLocalStorage } from "usehooks-ts";
+import { useContainerViewport } from "@/lib/hooks/use-container-viewport";
+import { computeFitScale } from "@/lib/fit";
 
 export interface ImageEditorCropRef {
   getImageBlob: () => Promise<Blob | undefined | null>;
@@ -28,6 +30,11 @@ export const ImageEditorCrop = forwardRef<
     height: 100,
   });
   const [imgRef, setImgRef] = useState<HTMLImageElement | null>(null);
+  const {
+    containerRef,
+    width: viewportWidth,
+    height: viewportHeight,
+  } = useContainerViewport();
 
   const handleAspectRatioChange = (newAspectRatio?: number) => {
     setAspectRatio(newAspectRatio);
@@ -57,19 +64,22 @@ export const ImageEditorCrop = forwardRef<
     const scaleX = image.naturalWidth / image.width;
     const scaleY = image.naturalHeight / image.height;
 
-    canvas.width = crop.width;
-    canvas.height = crop.height;
+    const scaledCropWidth = crop.width * scaleX;
+    const scaledCropHeight = crop.height * scaleY;
+
+    canvas.width = scaledCropWidth;
+    canvas.height = scaledCropHeight;
 
     ctx.drawImage(
       image,
       crop.x * scaleX,
       crop.y * scaleY,
-      crop.width * scaleX,
-      crop.height * scaleY,
+      scaledCropWidth,
+      scaledCropHeight,
       0,
       0,
-      crop.width,
-      crop.height
+      scaledCropWidth,
+      scaledCropHeight
     );
 
     return new Promise((resolve) => {
@@ -93,20 +103,62 @@ export const ImageEditorCrop = forwardRef<
     },
   }));
 
+  // Compute display size to fit image to viewport
+  const { displayWidth, displayHeight } = useMemo(() => {
+    const scale = computeFitScale(
+      viewportWidth,
+      viewportHeight,
+      imageEl.naturalWidth,
+      imageEl.naturalHeight,
+      { margin: 16 }
+    );
+    return {
+      displayWidth: Math.floor(imageEl.naturalWidth * scale),
+      displayHeight: Math.floor(imageEl.naturalHeight * scale),
+    };
+  }, [
+    viewportWidth,
+    viewportHeight,
+    imageEl.naturalWidth,
+    imageEl.naturalHeight,
+  ]);
+
+  // Compute actual crop size in pixels
+  const cropSize = useMemo(() => {
+    if (!crop || displayWidth <= 0 || displayHeight <= 0) return undefined;
+    return {
+      width: Math.round((crop.width / displayWidth) * imageEl.naturalWidth),
+      height: Math.round((crop.height / displayHeight) * imageEl.naturalHeight),
+    };
+  }, [
+    crop,
+    displayWidth,
+    displayHeight,
+    imageEl.naturalWidth,
+    imageEl.naturalHeight,
+  ]);
+
   return (
     <div className="flex flex-col w-full h-full justify-center">
       <ImageEditorCropToolbar
         onAspectRatioChange={handleAspectRatioChange}
         selectedAspectRatio={aspectRatio}
-        crop={crop}
+        cropSize={cropSize}
       />
 
-      <div className="flex-1 flex items-center justify-center p-4">
+      <div
+        ref={containerRef}
+        className="flex-1 flex items-center justify-center p-4"
+      >
         <ReactCrop
           crop={crop}
           onChange={(pixelCrop) => setCrop(pixelCrop)}
           onComplete={(pixelCrop) => setCrop(pixelCrop)}
           aspect={aspectRatio}
+          style={{
+            width: displayWidth,
+            height: displayHeight,
+          }}
         >
           <img ref={setImgRef} src={imageEl.src} />
         </ReactCrop>

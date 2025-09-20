@@ -1,10 +1,9 @@
 import { Button } from "@/components/ui/button";
-import { PixelCrop } from "react-image-crop";
 
 export interface ImageEditorCropToolbarProps {
   onAspectRatioChange?: (aspectRatio?: number) => void;
   selectedAspectRatio?: number | undefined;
-  crop?: PixelCrop;
+  cropSize?: { width: number; height: number };
 }
 
 const ASPECT_RATIOS = [
@@ -21,7 +20,7 @@ const ASPECT_RATIOS = [
 export function ImageEditorCropToolbar({
   onAspectRatioChange,
   selectedAspectRatio,
-  crop,
+  cropSize,
 }: ImageEditorCropToolbarProps) {
   return (
     <div className="flex items-center gap-2 px-4 py-3 border-b bg-background">
@@ -61,9 +60,9 @@ export function ImageEditorCropToolbar({
 
       <div className="flex-1" />
 
-      {crop && (
+      {cropSize && (
         <div className="text-muted-foreground">
-          Crop size: {Math.round(crop.width)} × {Math.round(crop.height)} px
+          Crop size: {cropSize.width} × {cropSize.height} px
         </div>
       )}
     </div>
