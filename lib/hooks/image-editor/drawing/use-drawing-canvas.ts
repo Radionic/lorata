@@ -22,12 +22,24 @@ export const useDrawingCanvas = ({
   const [drawings, setDrawings] = useState<DrawingData[]>([]);
   const [mousePos, setMousePos] = useState<CursorPosition | null>(null);
 
+  const toWorld = (
+    stage: Konva.Stage,
+    pointer: { x: number; y: number }
+  ): { x: number; y: number } => {
+    const scale = stage.scaleX() || 1;
+    return {
+      x: (pointer.x - stage.x()) / scale,
+      y: (pointer.y - stage.y()) / scale,
+    };
+  };
+
   const handleMouseDown = (e: Konva.KonvaEventObject<MouseEvent>) => {
     if (!enabled) return;
     e.evt.preventDefault();
 
-    const pos = e.target.getStage()?.getPointerPosition();
-    if (!pos) return;
+    const stage = e.target.getStage();
+    const pointer = stage?.getPointerPosition();
+    if (!stage || !pointer) return;
 
     setIsDrawing(true);
 
@@ -35,9 +47,10 @@ export const useDrawingCanvas = ({
     const isRightClick = e.evt.button === 2;
     const shouldErase = isRightClick;
 
+    const worldPos = toWorld(stage, pointer);
     const newDrawing: DrawingData = {
       id: Date.now().toString(),
-      points: [pos.x, pos.y],
+      points: [worldPos.x, worldPos.y],
       color: brushColor,
       strokeWidth: brushSize,
       opacity: brushOpacity,
@@ -50,18 +63,19 @@ export const useDrawingCanvas = ({
     if (!enabled) return;
 
     const stage = e.target.getStage();
-    const point = stage?.getPointerPosition();
-    if (!point) return;
-    setMousePos(point);
+    const pointer = stage?.getPointerPosition();
+    if (!stage || !pointer) return;
+    setMousePos(pointer);
 
     if (!isDrawing) return;
 
+    const worldPos = toWorld(stage, pointer);
     const lastDrawing = drawings[drawings.length - 1];
     setDrawings(() => [
       ...drawings.slice(0, drawings.length - 1),
       {
         ...lastDrawing,
-        points: lastDrawing.points.concat([point.x, point.y]),
+        points: lastDrawing.points.concat([worldPos.x, worldPos.y]),
       },
     ]);
   };

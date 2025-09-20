@@ -1,6 +1,12 @@
 "use client";
 
-import { useRef, forwardRef, useImperativeHandle } from "react";
+import {
+  useRef,
+  forwardRef,
+  useImperativeHandle,
+  useState,
+  useEffect,
+} from "react";
 import { Stage, Layer, Line, Image } from "react-konva";
 import { useHotkeys } from "react-hotkeys-hook";
 import Konva from "konva";
@@ -29,13 +35,11 @@ export const ImageEditorDraw = forwardRef<
   }
 >(function ({ imageEl }, ref) {
   const stageRef = useRef<Konva.Stage>(null);
-  const stageSize = {
-    width: window.innerWidth,
-    height: window.innerHeight,
-    scale: 1,
-  };
-  const imageX = (stageSize.width - imageEl.width) / 2;
-  const imageY = (stageSize.height - imageEl.height) / 2;
+  const [stageScale, setStageScale] = useState(1);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [viewport, setViewport] = useState({ width: 0, height: 0 });
+  const imageX = (viewport.width - imageEl.width) / 2;
+  const imageY = (viewport.height - imageEl.height) / 2;
 
   const {
     brushSize,
@@ -64,6 +68,48 @@ export const ImageEditorDraw = forwardRef<
 
   const { saveToHistory, undo, redo, canUndo, canRedo } =
     useHistory<DrawingData>();
+
+  // Measure container size to keep Stage in sync with visible area
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const update = () =>
+      setViewport({ width: el.clientWidth, height: el.clientHeight });
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  // Fit the image to the viewport initially and when viewport changes
+  useEffect(() => {
+    const stage = stageRef.current;
+    if (!stage || !imageEl) return;
+
+    const viewportW = viewport.width;
+    const viewportH = viewport.height;
+    if (!viewportW || !viewportH || !imageEl.width || !imageEl.height) return;
+
+    // Add small padding so the image is slightly smaller than the container
+    const padding = 16; // px on each side
+    const availableW = Math.max(0, viewportW - padding * 2);
+    const availableH = Math.max(0, viewportH - padding * 2);
+    const fitScale = Math.min(
+      availableW / imageEl.width,
+      availableH / imageEl.height
+    );
+
+    stage.scale({ x: fitScale, y: fitScale });
+    setStageScale(fitScale);
+
+    // Center the stage so the image (centered in stage at scale 1) remains centered
+    const pos = {
+      x: (viewportW - viewportW * fitScale) / 2,
+      y: (viewportH - viewportH * fitScale) / 2,
+    };
+    stage.position(pos);
+    stage.batchDraw();
+  }, [imageEl, viewport.width, viewport.height]);
 
   const _handleMouseUp = () => {
     handleMouseUp();
@@ -95,15 +141,62 @@ export const ImageEditorDraw = forwardRef<
     preventDefault: true,
   });
 
-  const getImageBlob = async () => {
-    if (!stageRef.current) return;
+  const handleWheel = (e: Konva.KonvaEventObject<WheelEvent>) => {
+    e.evt.preventDefault();
 
-    const dataURL = stageRef.current.toDataURL({
-      x: imageX,
-      y: imageY,
-      width: imageEl.width,
-      height: imageEl.height,
-      pixelRatio: 1,
+    const stage = stageRef.current;
+    if (!stage) return;
+
+    const oldScale = stage.scaleX();
+    const pointer = stage.getPointerPosition();
+    if (!pointer) return;
+
+    const mousePointTo = {
+      x: (pointer.x - stage.x()) / oldScale,
+      y: (pointer.y - stage.y()) / oldScale,
+    };
+
+    let direction = e.evt.deltaY > 0 ? -1 : 1;
+    if (e.evt.ctrlKey) {
+      direction = -direction;
+    }
+
+    const scaleBy = 1.02;
+    const nextScale = direction > 0 ? oldScale * scaleBy : oldScale / scaleBy;
+    const newScale = Math.max(0.1, Math.min(10, nextScale));
+
+    stage.scale({ x: newScale, y: newScale });
+    setStageScale(newScale);
+
+    const newPos = {
+      x: pointer.x - mousePointTo.x * newScale,
+      y: pointer.y - mousePointTo.y * newScale,
+    };
+    stage.position(newPos);
+    stage.batchDraw();
+  };
+
+  const getImageBlob = async () => {
+    const stage = stageRef.current;
+    if (!stage) return;
+
+    // Compute crop in current screen-space using stage transform
+    const scale = stage.scaleX() || 1;
+    const pos = stage.position();
+    const cropX = pos.x + imageX * scale;
+    const cropY = pos.y + imageY * scale;
+    const cropWidth = imageEl.width * scale;
+    const cropHeight = imageEl.height * scale;
+
+    // Keep export at the displayed resolution regardless of zoom
+    const pixelRatio = 1 / scale;
+
+    const dataURL = stage.toDataURL({
+      x: cropX,
+      y: cropY,
+      width: cropWidth,
+      height: cropHeight,
+      pixelRatio,
     });
 
     const response = await fetch(dataURL);
@@ -132,15 +225,19 @@ export const ImageEditorDraw = forwardRef<
       />
 
       {/* Konva Stage */}
-      <div className="relative flex-1 overflow-hidden bg-muted/20">
+      <div
+        ref={containerRef}
+        className="relative flex-1 overflow-hidden bg-muted/20"
+      >
         <Stage
           ref={stageRef}
-          width={stageSize.width}
-          height={stageSize.height}
+          width={viewport.width}
+          height={viewport.height}
           onMouseDown={handleMouseDown}
-          onMousemove={handleMouseMove}
-          onMouseup={_handleMouseUp}
+          onMouseMove={handleMouseMove}
+          onMouseUp={_handleMouseUp}
           onMouseLeave={handleMouseLeave}
+          onWheel={handleWheel}
           onContextMenu={(e) => e.evt.preventDefault()}
           className="cursor-none"
         >
@@ -186,8 +283,8 @@ export const ImageEditorDraw = forwardRef<
             style={{
               left: mousePos.x,
               top: mousePos.y,
-              width: brushSize,
-              height: brushSize,
+              width: brushSize * stageScale,
+              height: brushSize * stageScale,
             }}
           />
         )}
