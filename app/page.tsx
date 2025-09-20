@@ -49,17 +49,17 @@ export default function Page() {
             {tasks?.map((task) => (
               <TaskCard key={task.id} task={task} />
             ))}
-            {tasks?.length === 0 && (
-              <div className="text-center py-12">
-                <FileImage className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-                <h3 className="text-lg font-medium mb-2">No tasks yet</h3>
-                <Button onClick={handleCreateTask}>
-                  <Plus className="mr-2 h-4 w-4" />
-                  Create Task
-                </Button>
-              </div>
-            )}
           </div>
+          {tasks?.length === 0 && (
+            <div className="text-center py-12">
+              <FileImage className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+              <h3 className="text-lg font-medium mb-2">No tasks yet</h3>
+              <Button onClick={handleCreateTask}>
+                <Plus className="mr-2 h-4 w-4" />
+                Create Task
+              </Button>
+            </div>
+          )}
         </LoadingErrorState>
       </div>
 
