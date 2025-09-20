@@ -93,6 +93,30 @@ export const useRenameTask = () => {
   });
 };
 
+export const useDeleteTask = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ taskId }: { taskId: string }) => {
+      const response = await fetch(`/api/tasks/${taskId}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        toast.error(error.error || "Failed to delete task");
+        return false;
+      }
+
+      toast.success("Task deleted successfully");
+      return true;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries(["tasks"]);
+    },
+  });
+};
+
 export const useExportTask = () => {
   return useMutation({
     mutationFn: async ({ taskId }: { taskId: string }) => {

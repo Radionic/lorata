@@ -14,13 +14,15 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { RenameTaskDialog } from "@/components/rename-task-dialog";
+import { RenameTaskDialog } from "@/components/tasks/dialog/rename-task-dialog";
+import { DeleteTaskDialog } from "@/components/tasks/dialog/delete-task-dialog";
 import { Task } from "@/lib/types";
 import { useState } from "react";
-import { Edit, FileImage, MoreVertical } from "lucide-react";
+import { Edit, FileImage, MoreVertical, Trash2 } from "lucide-react";
 
 export function TaskCard({ task }: { task: Task }) {
   const [renameDialogOpen, setRenameDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
   return (
     <>
@@ -49,6 +51,16 @@ export function TaskCard({ task }: { task: Task }) {
                     <Edit className="mr-2 h-4 w-4" />
                     Rename
                   </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setDeleteDialogOpen(true);
+                    }}
+                    className="text-red-600 focus:text-red-600"
+                  >
+                    <Trash2 className="text-red-600 mr-2 h-4 w-4" />
+                    Delete
+                  </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
@@ -67,6 +79,14 @@ export function TaskCard({ task }: { task: Task }) {
         <RenameTaskDialog
           open={renameDialogOpen}
           onOpenChange={setRenameDialogOpen}
+          task={task}
+        />
+      )}
+
+      {deleteDialogOpen && (
+        <DeleteTaskDialog
+          open={deleteDialogOpen}
+          onOpenChange={setDeleteDialogOpen}
           task={task}
         />
       )}
