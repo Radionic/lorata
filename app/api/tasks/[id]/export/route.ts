@@ -95,7 +95,7 @@ export async function POST(
         const targetImageInfo = getImagePathInfo(task.id, targetImage);
 
         archive.file(targetImageInfo.absolutePath, {
-          name: `targets/${targetImage}`,
+          name: `targets/${sourceImageInfo.name}${targetImageInfo.extension}`,
         });
 
         archive.append(itemData.instruction, {
