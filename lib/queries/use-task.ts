@@ -64,6 +64,35 @@ export const useCreateTask = () => {
   });
 };
 
+export const useRenameTask = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ taskId, name }: { taskId: string; name: string }) => {
+      const response = await fetch(`/api/tasks/${taskId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ name }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        toast.error(error.error || "Failed to rename task");
+        return false;
+      }
+
+      toast.success("Task renamed successfully");
+      return true;
+    },
+    onSuccess: (_, { taskId }) => {
+      queryClient.invalidateQueries(["tasks"]);
+      queryClient.invalidateQueries(["task", taskId]);
+    },
+  });
+};
+
 export const useExportTask = () => {
   return useMutation({
     mutationFn: async ({ taskId }: { taskId: string }) => {

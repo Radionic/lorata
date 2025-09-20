@@ -1,22 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import { Plus, FileImage } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-
 import { useTasks } from "@/lib/queries/use-task";
 import { CreateTaskDialog } from "@/components/create-task-dialog";
 import { LoadingErrorState } from "@/components/loading-error-state";
 import { useRouter } from "next/navigation";
-import { Task } from "@/lib/types";
+import { TaskCard } from "@/components/tasks/task-card";
 
 function PageHeader({ onCreateTask }: { onCreateTask: () => void }) {
   return (
@@ -32,28 +23,6 @@ function PageHeader({ onCreateTask }: { onCreateTask: () => void }) {
         Create Task
       </Button>
     </div>
-  );
-}
-
-function TaskCard({ task }: { task: Task }) {
-  return (
-    <Link href={`/tasks/${task.id}`}>
-      <Card className="hover:shadow-md transition-shadow cursor-pointer">
-        <CardHeader>
-          <div className="flex items-center gap-2">
-            <FileImage className="h-5 w-5 text-blue-500" />
-            <CardTitle className="text-lg">{task.name}</CardTitle>
-          </div>
-          <CardDescription>{task.type}</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex justify-between text-sm text-muted-foreground">
-            <span>{task.itemCount} items</span>
-            <span>{new Date(task.createdAt).toLocaleDateString()}</span>
-          </div>
-        </CardContent>
-      </Card>
-    </Link>
   );
 }
 
