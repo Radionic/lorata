@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { useDeleteImage, useUploadImage } from "@/lib/queries/use-image";
-import { ImageSize, useImageLoader } from "@/lib/hooks/use-image-loader";
+import { useImageLoader } from "@/lib/hooks/use-image-loader";
 import { ImageEditor } from "./image-editor/image-editor";
 
 function ImageUploadPlaceholder({
@@ -69,31 +69,25 @@ function ImageUploadPlaceholder({
 }
 
 function ImageInfo({
-  image,
-  imageSize,
+  imageEl,
+  imageName,
 }: {
-  image: string | File | null;
-  imageSize?: ImageSize;
+  imageEl: HTMLImageElement;
+  imageName: string;
 }) {
   return (
     <div className="mt-2 space-y-1 text-center">
-      <p className="text-xs text-muted-foreground font-medium">
-        {typeof image === "string"
-          ? image.split("/").pop() || "image"
-          : image?.name}
+      <p className="text-xs text-muted-foreground font-medium">{imageName}</p>
+      <p className="text-xs text-muted-foreground">
+        {imageEl.width} × {imageEl.height} px
       </p>
-      {imageSize && (
-        <p className="text-xs text-muted-foreground">
-          {imageSize.width} × {imageSize.height} px
-        </p>
-      )}
     </div>
   );
 }
 
 interface ImageUploadAreaProps {
   taskId: string;
-  image?: string | File;
+  image?: string;
   label: string;
   onImageUploaded?: ({
     file,
@@ -113,7 +107,7 @@ export function ImageUploadArea({
   onImageRemoved,
 }: ImageUploadAreaProps) {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const { imageEl, imageSize } = useImageLoader(image);
+  const { imageEl, imageName, releaseImage } = useImageLoader(image);
   const [showEditor, setShowEditor] = useState(false);
 
   const { mutateAsync: uploadImage, isLoading: isUploading } = useUploadImage();
@@ -143,12 +137,10 @@ export function ImageUploadArea({
   };
 
   const _removeImage = async () => {
-    if (typeof image === "string") {
-      const imageName = image.split("/").pop();
-      if (!imageName) return;
-      const deleted = await deleteImage({ taskId, filename: imageName });
-      deleted && onImageRemoved?.();
-    }
+    if (!imageName) return;
+    releaseImage();
+    const deleted = await deleteImage({ taskId, filename: imageName });
+    deleted && onImageRemoved?.();
   };
 
   const handleDrop = async (e: React.DragEvent) => {
@@ -207,13 +199,16 @@ export function ImageUploadArea({
         />
       </div>
 
-      {image && <ImageInfo image={image} imageSize={imageSize} />}
+      {imageEl && imageName && (
+        <ImageInfo imageEl={imageEl} imageName={imageName} />
+      )}
 
       {/* Image Editor */}
-      {showEditor && image && (
+      {showEditor && imageEl && imageName && (
         <div className="fixed inset-0 z-50 bg-background">
           <ImageEditor
-            image={image}
+            imageEl={imageEl}
+            imageName={imageName}
             onClose={() => setShowEditor(false)}
             onSave={async (newImage) => {
               await _uploadImage({ file: newImage, overwriteImage: true });

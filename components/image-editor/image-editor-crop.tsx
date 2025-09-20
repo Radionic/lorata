@@ -13,9 +13,9 @@ export interface ImageEditorCropRef {
 export const ImageEditorCrop = forwardRef<
   ImageEditorCropRef,
   {
-    image: File | string;
+    imageEl: HTMLImageElement;
   }
->(function ({ image }, ref) {
+>(function ({ imageEl }, ref) {
   const [aspectRatio, setAspectRatio] = useLocalStorage<number | undefined>(
     "image-editor-crop-aspect-ratio",
     undefined
@@ -108,14 +108,7 @@ export const ImageEditorCrop = forwardRef<
           onComplete={(pixelCrop) => setCrop(pixelCrop)}
           aspect={aspectRatio}
         >
-          <img
-            ref={setImgRef}
-            src={
-              typeof image === "string"
-                ? image
-                : URL.createObjectURL(image as File)
-            }
-          />
+          <img ref={setImgRef} src={imageEl.src} />
         </ReactCrop>
       </div>
     </div>

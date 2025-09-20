@@ -4,7 +4,6 @@ import { useRef, forwardRef, useImperativeHandle } from "react";
 import { Stage, Layer, Line, Image } from "react-konva";
 import { useHotkeys } from "react-hotkeys-hook";
 import Konva from "konva";
-import { useImageLoader } from "@/lib/hooks/use-image-loader";
 import { useHistory } from "@/lib/hooks/use-history";
 import { useDrawingCanvas } from "@/lib/hooks/image-editor/drawing/use-drawing-canvas";
 import { useDrawingSettings } from "@/lib/hooks/image-editor/drawing/use-drawing-settings";
@@ -26,18 +25,17 @@ export interface ImageEditorDrawRef {
 export const ImageEditorDraw = forwardRef<
   ImageEditorDrawRef,
   {
-    image: File | string;
+    imageEl: HTMLImageElement;
   }
->(function ({ image }, ref) {
+>(function ({ imageEl }, ref) {
   const stageRef = useRef<Konva.Stage>(null);
   const stageSize = {
     width: window.innerWidth,
     height: window.innerHeight,
     scale: 1,
   };
-  const { imageEl, imageSize } = useImageLoader(image);
-  const imageX = (stageSize.width - imageSize.width) / 2;
-  const imageY = (stageSize.height - imageSize.height) / 2;
+  const imageX = (stageSize.width - imageEl.width) / 2;
+  const imageY = (stageSize.height - imageEl.height) / 2;
 
   const {
     brushSize,
@@ -103,8 +101,8 @@ export const ImageEditorDraw = forwardRef<
     const dataURL = stageRef.current.toDataURL({
       x: imageX,
       y: imageY,
-      width: imageSize.width,
-      height: imageSize.height,
+      width: imageEl.width,
+      height: imageEl.height,
       pixelRatio: 1,
     });
 
@@ -150,8 +148,8 @@ export const ImageEditorDraw = forwardRef<
             {imageEl && (
               <Image
                 image={imageEl}
-                width={imageSize.width}
-                height={imageSize.height}
+                width={imageEl.width}
+                height={imageEl.height}
                 x={imageX}
                 y={imageY}
               />
@@ -161,8 +159,8 @@ export const ImageEditorDraw = forwardRef<
           <Layer
             clipX={imageX}
             clipY={imageY}
-            clipWidth={imageSize.width}
-            clipHeight={imageSize.height}
+            clipWidth={imageEl.width}
+            clipHeight={imageEl.height}
           >
             {drawings.map((drawing) => (
               <Line

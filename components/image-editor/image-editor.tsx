@@ -9,11 +9,13 @@ import { ImageEditorCrop, ImageEditorCropRef } from "./image-editor-crop";
 import { useLocalStorage } from "usehooks-ts";
 
 export function ImageEditor({
-  image,
+  imageEl,
+  imageName,
   onClose,
   onSave,
 }: {
-  image: File | string;
+  imageEl: HTMLImageElement;
+  imageName: string;
   onClose?: () => void;
   onSave?: (newImage: File) => void;
 }) {
@@ -27,11 +29,7 @@ export function ImageEditor({
     const blob = await editorRef.current?.getImageBlob();
     if (!blob) return;
 
-    const filename =
-      typeof image === "string"
-        ? image.split("/").pop() || `edited-image-${Date.now()}.png`
-        : image.name;
-    const file = new File([blob], filename, { type: "image/png" });
+    const file = new File([blob], imageName, { type: "image/png" });
     onSave?.(file);
   };
 
@@ -97,9 +95,13 @@ export function ImageEditor({
       </div>
 
       <div className="flex-1">
-        {tool === "draw" && <ImageEditorDraw ref={editorRef} image={image} />}
+        {tool === "draw" && (
+          <ImageEditorDraw ref={editorRef} imageEl={imageEl} />
+        )}
 
-        {tool === "crop" && <ImageEditorCrop ref={editorRef} image={image} />}
+        {tool === "crop" && (
+          <ImageEditorCrop ref={editorRef} imageEl={imageEl} />
+        )}
       </div>
     </div>
   );

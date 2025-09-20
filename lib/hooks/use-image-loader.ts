@@ -1,16 +1,8 @@
 import { useState, useEffect } from "react";
 
-export interface ImageSize {
-  width: number;
-  height: number;
-}
-
 export const useImageLoader = (image?: File | string) => {
-  const [imageEl, setImageEl] = useState<HTMLImageElement | null>(null);
-  const [imageSize, setImageSize] = useState<ImageSize>({
-    width: 0,
-    height: 0,
-  });
+  const [imageEl, setImageEl] = useState<HTMLImageElement>();
+  const [imageName, setImageName] = useState<string>();
 
   useEffect(() => {
     if (!image) return;
@@ -18,7 +10,7 @@ export const useImageLoader = (image?: File | string) => {
     const img = new window.Image();
     img.onload = () => {
       setImageEl(img);
-      setImageSize({ width: img.width, height: img.height });
+      setImageName(img.src.split("?")[0].split("/").pop());
     };
     img.src = typeof image === "string" ? image : URL.createObjectURL(image);
 
@@ -29,8 +21,17 @@ export const useImageLoader = (image?: File | string) => {
     };
   }, [image]);
 
+  const releaseImage = () => {
+    if (imageEl) {
+      imageEl.src = "";
+    }
+    setImageEl(undefined);
+    setImageName(undefined);
+  };
+
   return {
     imageEl,
-    imageSize,
+    imageName,
+    releaseImage,
   };
 };
