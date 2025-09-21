@@ -162,50 +162,39 @@ export const ImageEditorDraw = forwardRef<
     if (!stage) return;
 
     // Temporarily force pen strokes to full opacity and "source-over" for export
-    const drawLayer = drawLayerRef.current;
-    const toRestore: {
-      line: Konva.Line;
-      opacity: number;
-    }[] = [];
-    if (drawLayer) {
-      const lines = drawLayer.find<Konva.Line>("Line");
-      lines.forEach((line) => {
-        if (line.getAttr("globalCompositeOperation") !== "destination-out") {
-          toRestore.push({ line, opacity: line.opacity() });
-          line.opacity(1);
-          line.setAttr("globalCompositeOperation", "source-over");
-        }
-      });
-      drawLayer.batchDraw();
-    }
-
-    // Compute crop in current screen-space using stage transform
-    const scale = stage.scaleX() || 1;
-    const pos = stage.position();
-    const cropX = pos.x + imageX * scale;
-    const cropY = pos.y + imageY * scale;
-    const cropWidth = imageEl.width * scale;
-    const cropHeight = imageEl.height * scale;
-
-    // Keep export at the displayed resolution regardless of zoom
-    const pixelRatio = 1 / scale;
-
-    const dataURL = stage.toDataURL({
-      x: cropX,
-      y: cropY,
-      width: cropWidth,
-      height: cropHeight,
-      pixelRatio,
+    const lines = drawLayerRef.current?.find<Konva.Line>("Line");
+    lines?.forEach((line) => {
+      if (line.getAttr("globalCompositeOperation") === "xor") {
+        line.opacity(1);
+        line.setAttr("globalCompositeOperation", "source-over");
+      }
     });
 
-    // Restore display opacities after export snapshot
-    if (toRestore.length) {
-      toRestore.forEach(({ line, opacity }) => {
-        line.opacity(opacity);
+    // Temporarily reset stage transform
+    const prevScale = stage.scale();
+    const prevPos = stage.position();
+    stage.scale({ x: 1, y: 1 });
+    stage.position({ x: -imageX, y: -imageY });
+    stage.batchDraw();
+
+    const dataURL = stage.toDataURL({
+      width: imageEl.width,
+      height: imageEl.height,
+      pixelRatio: 1,
+    });
+
+    // Restore display opacity and composite mode
+    lines?.forEach((line) => {
+      if (line.getAttr("globalCompositeOperation") === "source-over") {
+        line.opacity(0.5);
         line.setAttr("globalCompositeOperation", "xor");
-      });
-      drawLayer?.batchDraw();
-    }
+      }
+    });
+
+    // Restore stage transform
+    stage.scale(prevScale);
+    stage.position(prevPos);
+    stage.batchDraw();
 
     const response = await fetch(dataURL);
     return await response.blob();
