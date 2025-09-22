@@ -41,9 +41,9 @@ export function ImageEditorDrawToolbar({
         <Slider
           value={[brushSize]}
           onValueChange={(value) => onBrushSizeChange?.(value[0])}
-          max={100}
-          min={5}
-          step={5}
+          max={300}
+          min={10}
+          step={10}
           className="w-20"
         />
         <span className="text-sm text-muted-foreground w-8">{brushSize}</span>
@@ -68,6 +68,16 @@ export function ImageEditorDrawToolbar({
           <SketchPicker
             color={brushColor}
             onChange={(color) => onBrushColorChange?.(color.hex)}
+            presetColors={[
+              "#000000",
+              "#ffffff",
+              "#ff0000",
+              "#00ff00",
+              "#0000ff",
+              "#ffff00",
+              "#ff00ff",
+              "#00ffff",
+            ]}
             disableAlpha
           />
         </PopoverContent>
