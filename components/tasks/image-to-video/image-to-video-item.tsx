@@ -1,11 +1,10 @@
-"use client";
+import { ImageToVideoTaskItem } from "@/lib/types";
 
 import { Trash2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { MediaUploadArea } from "@/components/media-upload-area";
-import { ImageEditingTaskItem } from "@/lib/types";
 import { getMediaUrl } from "@/lib/urls";
 import {
   useDeleteTaskItem,
@@ -13,52 +12,53 @@ import {
 } from "@/lib/queries/use-task-item";
 import { Textarea } from "@/components/ui/textarea";
 
-interface ImageEditItemProps {
-  item: ImageEditingTaskItem;
+export function ImageToVideoItem({
+  taskId,
+  item,
+}: {
   taskId: string;
-}
-
-export function ImageEditItem({ item, taskId }: ImageEditItemProps) {
+  item: ImageToVideoTaskItem;
+}) {
   const sourceImageUrl = getMediaUrl({
     taskId,
     filename: item.data.sourceImage,
   });
-  const targetImageUrl = getMediaUrl({
+  const targetVideoUrl = getMediaUrl({
     taskId,
-    filename: item.data.targetImage,
+    filename: item.data.targetVideo,
   });
   const { mutate: updateTaskItem } = useUpdateTaskItem();
   const { mutate: deleteTaskItem } = useDeleteTaskItem();
 
-  const handleImageUploaded = async ({
-    type,
+  const handleUploaded = async ({
+    side,
     file,
   }: {
-    type: "source" | "target";
+    side: "source" | "target";
     file: File;
   }) => {
-    const image = type === "source" ? "sourceImage" : "targetImage";
+    const key = side === "source" ? "sourceImage" : "targetVideo";
     updateTaskItem({
       taskId,
       item: {
         ...item,
         data: {
           ...item.data,
-          [image]: file.name,
+          [key]: file.name,
         },
       },
     });
   };
 
-  const handleImageRemoved = ({ type }: { type: "source" | "target" }) => {
-    const image = type === "source" ? "sourceImage" : "targetImage";
+  const handleRemoved = ({ side }: { side: "source" | "target" }) => {
+    const key = side === "source" ? "sourceImage" : "targetVideo";
     updateTaskItem({
       taskId,
       item: {
         ...item,
         data: {
           ...item.data,
-          [image]: null,
+          [key]: null,
         },
       },
     });
@@ -103,19 +103,19 @@ export function ImageEditItem({ item, taskId }: ImageEditItemProps) {
               label="Source Image"
               type="image"
               onMediaUploaded={({ file }) =>
-                handleImageUploaded({ file, type: "source" })
+                handleUploaded({ file, side: "source" })
               }
-              onMediaRemoved={() => handleImageRemoved({ type: "source" })}
+              onMediaRemoved={() => handleRemoved({ side: "source" })}
             />
             <MediaUploadArea
               taskId={taskId}
-              media={targetImageUrl}
-              label="Target Image"
-              type="image"
+              media={targetVideoUrl}
+              label="Target Video"
+              type="video"
               onMediaUploaded={({ file }) =>
-                handleImageUploaded({ file, type: "target" })
+                handleUploaded({ file, side: "target" })
               }
-              onMediaRemoved={() => handleImageRemoved({ type: "target" })}
+              onMediaRemoved={() => handleRemoved({ side: "target" })}
             />
           </div>
 
@@ -124,11 +124,11 @@ export function ImageEditItem({ item, taskId }: ImageEditItemProps) {
               htmlFor={`instruction-${item.id}`}
               className="text-sm font-medium mb-2 block"
             >
-              Edit Instruction
+              Instruction
             </Label>
             <Textarea
               id={`instruction-${item.id}`}
-              placeholder="Describe the editing task..."
+              placeholder="Describe the image-to-video task..."
               defaultValue={item.data.instruction}
               onBlur={(e) => handleInstructionChanged(e.target.value)}
               className="w-full field-sizing-content resize-none min-h-0"

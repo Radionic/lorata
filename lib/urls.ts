@@ -1,4 +1,4 @@
-export const getImageUrl = ({
+export const getMediaUrl = ({
   taskId,
   filename,
 }: {

@@ -7,7 +7,7 @@ export async function POST(request: NextRequest) {
   const formData = await request.formData();
   const file = formData.get("file") as File;
   const taskId = formData.get("taskId") as string;
-  const overwriteImage = formData.get("overwriteImage") === "true";
+  const overwrite = formData.get("overwrite") === "true";
 
   if (!file || !taskId) {
     return NextResponse.json(
@@ -22,9 +22,9 @@ export async function POST(request: NextRequest) {
   }
 
   const filepath = path.join(dataDir, file.name);
-  if (!overwriteImage && existsSync(filepath)) {
+  if (!overwrite && existsSync(filepath)) {
     return NextResponse.json(
-      { error: "An image with the same name already exists" },
+      { error: "A media file with the same name already exists" },
       { status: 409 }
     );
   }
@@ -52,11 +52,6 @@ export async function DELETE(request: NextRequest) {
   if (existsSync(filepath)) {
     await unlink(filepath);
   }
-
-  // if (!existsSync(filepath)) {
-  //   return NextResponse.json({ error: "File not found" }, { status: 404 });
-  // }
-  // await unlink(filepath);
 
   return NextResponse.json({});
 }

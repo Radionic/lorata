@@ -57,6 +57,8 @@ export function CreateTaskDialog({
               <SelectContent>
                 <SelectItem value="text-to-image">Text to Image</SelectItem>
                 <SelectItem value="image-editing">Image Editing</SelectItem>
+                <SelectItem value="text-to-video">Text to Video</SelectItem>
+                <SelectItem value="image-to-video">Image to Video</SelectItem>
               </SelectContent>
             </Select>
           </div>

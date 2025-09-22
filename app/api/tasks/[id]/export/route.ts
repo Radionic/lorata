@@ -2,7 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { eq } from "drizzle-orm";
 import { tasksTable, taskItemsTable } from "@/lib/db/schema";
-import { ImageEditingTaskItem, TextToImageTaskItem } from "@/lib/types";
+import {
+  ImageEditingTaskItem,
+  TextToImageTaskItem,
+  TextToVideoTaskItem,
+  ImageToVideoTaskItem,
+} from "@/lib/types";
 import archiver from "archiver";
 import path from "path";
 import { match } from "ts-pattern";
@@ -117,6 +122,51 @@ export async function POST(
         });
         archive.append(itemData.instruction, {
           name: `instructions/${imageInfo.name}.txt`,
+        });
+      }
+    })
+    .with("text-to-video", async () => {
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i] as TextToVideoTaskItem;
+        const itemData = item.data;
+        if (!itemData.video || !itemData.instruction) continue;
+
+        const video = itemData.video as string;
+        const videoInfo = getImagePathInfo(task.id, video);
+
+        archive.file(videoInfo.absolutePath, {
+          name: `videos/${video}`,
+        });
+        archive.append(itemData.instruction, {
+          name: `instructions/${videoInfo.name}.txt`,
+        });
+      }
+    })
+    .with("image-to-video", async () => {
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i] as ImageToVideoTaskItem;
+        const itemData = item.data;
+        if (
+          !itemData.sourceImage ||
+          !itemData.targetVideo ||
+          !itemData.instruction
+        )
+          continue;
+
+        const sourceImage = itemData.sourceImage as string;
+        const targetVideo = itemData.targetVideo as string;
+
+        const sourceInfo = getImagePathInfo(task.id, sourceImage);
+        const targetInfo = getImagePathInfo(task.id, targetVideo);
+
+        archive.file(sourceInfo.absolutePath, {
+          name: `sources/${sourceImage}`,
+        });
+        archive.file(targetInfo.absolutePath, {
+          name: `targets/${sourceInfo.name}${targetInfo.extension}`,
+        });
+        archive.append(itemData.instruction, {
+          name: `instructions/${sourceInfo.name}.txt`,
         });
       }
     })

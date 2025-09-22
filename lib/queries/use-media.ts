@@ -1,30 +1,30 @@
 import { useMutation } from "react-query";
 import { toast } from "sonner";
 
-export const useUploadImage = () => {
+export const useUploadMedia = () => {
   return useMutation({
     mutationFn: async ({
       file,
       taskId,
-      overwriteImage,
+      overwrite,
     }: {
       file: File;
       taskId: string;
-      overwriteImage?: boolean;
+      overwrite?: boolean;
     }) => {
       const formData = new FormData();
       formData.append("file", file);
       formData.append("taskId", taskId);
-      formData.append("overwriteImage", overwriteImage ? "true" : "false");
+      formData.append("overwrite", overwrite ? "true" : "false");
 
-      const response = await fetch("/api/images", {
+      const response = await fetch("/api/media", {
         method: "POST",
         body: formData,
       });
 
       if (!response.ok) {
-        const error = await response.json();
-        toast.error(error.error || "Failed to upload image");
+        const error = await response.json().catch(() => ({}));
+        toast.error(error.error || "Failed to upload media");
         return false;
       }
       return true;
@@ -32,7 +32,7 @@ export const useUploadImage = () => {
   });
 };
 
-export const useDeleteImage = () => {
+export const useDeleteMedia = () => {
   return useMutation({
     mutationFn: async ({
       taskId,
@@ -45,13 +45,13 @@ export const useDeleteImage = () => {
         taskId,
         filename,
       });
-      const response = await fetch(`/api/images?${params}`, {
+      const response = await fetch(`/api/media?${params}`, {
         method: "DELETE",
       });
 
       if (!response.ok) {
-        const error = await response.json();
-        toast.error(error.error || "Failed to delete image");
+        const error = await response.json().catch(() => ({}));
+        toast.error(error.error || "Failed to delete media");
         return false;
       }
       return true;

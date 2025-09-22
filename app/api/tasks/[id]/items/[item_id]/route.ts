@@ -2,7 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { taskItemsTable, tasksTable } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
-import { ImageEditingTaskItem } from "@/lib/types";
+import {
+  ImageEditingTaskItem,
+  TextToVideoTaskItem,
+  ImageToVideoTaskItem,
+} from "@/lib/types";
 import path from "path";
 import { unlinkSync } from "fs";
 
@@ -91,6 +95,23 @@ export async function DELETE(
     if (typeof targetImage === "string") {
       const targetImagePath = path.resolve("data", taskId, targetImage);
       unlinkSync(targetImagePath);
+    }
+  } else if (taskType === "text-to-video") {
+    const { video } = (deletedItem as TextToVideoTaskItem).data;
+    if (typeof video === "string") {
+      const videoPath = path.resolve("data", taskId, video);
+      unlinkSync(videoPath);
+    }
+  } else if (taskType === "image-to-video") {
+    const { sourceImage, targetVideo } = (deletedItem as ImageToVideoTaskItem)
+      .data;
+    if (typeof sourceImage === "string") {
+      const sourceImagePath = path.resolve("data", taskId, sourceImage);
+      unlinkSync(sourceImagePath);
+    }
+    if (typeof targetVideo === "string") {
+      const targetVideoPath = path.resolve("data", taskId, targetVideo);
+      unlinkSync(targetVideoPath);
     }
   }
 

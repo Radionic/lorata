@@ -1,6 +1,11 @@
 import { sqliteTable, text } from "drizzle-orm/sqlite-core";
 
-const taskType = ["text-to-image", "image-editing"] as const;
+const taskType = [
+  "text-to-image",
+  "image-editing",
+  "text-to-video",
+  "image-to-video",
+] as const;
 
 export const tasksTable = sqliteTable("tasks", {
   id: text("id").primaryKey(),

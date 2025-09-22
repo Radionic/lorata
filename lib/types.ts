@@ -21,3 +21,18 @@ export interface ImageEditingTaskItem extends TaskItem {
     targetImage?: string;
   };
 }
+
+export interface TextToVideoTaskItem extends TaskItem {
+  data: {
+    instruction?: string;
+    video?: string;
+  };
+}
+
+export interface ImageToVideoTaskItem extends TaskItem {
+  data: {
+    instruction?: string;
+    sourceImage?: string;
+    targetVideo?: string;
+  };
+}

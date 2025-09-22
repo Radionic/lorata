@@ -3,11 +3,19 @@
 import { useParams } from "next/navigation";
 import { ImageEditItem } from "@/components/tasks/image-editing/image-editing-item";
 import { useTaskItems } from "@/lib/queries/use-task-item";
-import { ImageEditingTaskItem, Task, TextToImageTaskItem } from "@/lib/types";
+import {
+  ImageEditingTaskItem,
+  Task,
+  TextToImageTaskItem,
+  TextToVideoTaskItem,
+  ImageToVideoTaskItem,
+} from "@/lib/types";
 import { LoadingErrorState } from "@/components/loading-error-state";
 import { useRouter } from "next/navigation";
 import { match } from "ts-pattern";
 import { TextToImageItem } from "./text-to-image/text-to-image-item";
+import { TextToVideoItem } from "./text-to-video/text-to-video-item";
+import { ImageToVideoItem } from "./image-to-video/image-to-video-item";
 import { cn } from "@/lib/utils";
 
 export function TaskItemsPage({ task }: { task?: Task }) {
@@ -40,7 +48,7 @@ export function TaskItemsPage({ task }: { task?: Task }) {
       <div
         className={cn(
           "grid gap-6",
-          task.type === "text-to-image"
+          task.type === "text-to-image" || task.type === "text-to-video"
             ? "grid-cols-2 md:grid-cols-3 lg:grid-cols-4"
             : "grid-cols-1 md:grid-cols-2 lg:grid-cols-3"
         )}
@@ -52,6 +60,24 @@ export function TaskItemsPage({ task }: { task?: Task }) {
                 key={item.id}
                 taskId={taskId}
                 item={item as TextToImageTaskItem}
+              />
+            ))
+          )
+          .with("text-to-video", () =>
+            items?.map((item) => (
+              <TextToVideoItem
+                key={item.id}
+                taskId={taskId}
+                item={item as TextToVideoTaskItem}
+              />
+            ))
+          )
+          .with("image-to-video", () =>
+            items?.map((item) => (
+              <ImageToVideoItem
+                key={item.id}
+                taskId={taskId}
+                item={item as ImageToVideoTaskItem}
               />
             ))
           )

@@ -62,6 +62,27 @@ export async function POST(
       createdAt: now,
       updatedAt: now,
     }))
+    .with("text-to-video", () => ({
+      id: itemId,
+      taskId,
+      data: {
+        video: undefined,
+        instruction: "",
+      },
+      createdAt: now,
+      updatedAt: now,
+    }))
+    .with("image-to-video", () => ({
+      id: itemId,
+      taskId,
+      data: {
+        sourceImage: undefined,
+        targetVideo: undefined,
+        instruction: "",
+      },
+      createdAt: now,
+      updatedAt: now,
+    }))
     .exhaustive();
 
   await db.insert(taskItemsTable).values(newItem);

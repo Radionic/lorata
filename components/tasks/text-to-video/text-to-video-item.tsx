@@ -1,11 +1,10 @@
-"use client";
+import { TextToVideoTaskItem } from "@/lib/types";
 
 import { Trash2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { MediaUploadArea } from "@/components/media-upload-area";
-import { ImageEditingTaskItem } from "@/lib/types";
 import { getMediaUrl } from "@/lib/urls";
 import {
   useDeleteTaskItem,
@@ -13,52 +12,38 @@ import {
 } from "@/lib/queries/use-task-item";
 import { Textarea } from "@/components/ui/textarea";
 
-interface ImageEditItemProps {
-  item: ImageEditingTaskItem;
+export function TextToVideoItem({
+  taskId,
+  item,
+}: {
   taskId: string;
-}
-
-export function ImageEditItem({ item, taskId }: ImageEditItemProps) {
-  const sourceImageUrl = getMediaUrl({
-    taskId,
-    filename: item.data.sourceImage,
-  });
-  const targetImageUrl = getMediaUrl({
-    taskId,
-    filename: item.data.targetImage,
-  });
+  item: TextToVideoTaskItem;
+}) {
+  const videoUrl = getMediaUrl({ taskId, filename: item.data.video });
   const { mutate: updateTaskItem } = useUpdateTaskItem();
   const { mutate: deleteTaskItem } = useDeleteTaskItem();
 
-  const handleImageUploaded = async ({
-    type,
-    file,
-  }: {
-    type: "source" | "target";
-    file: File;
-  }) => {
-    const image = type === "source" ? "sourceImage" : "targetImage";
+  const handleVideoUploaded = async ({ file }: { file: File }) => {
     updateTaskItem({
       taskId,
       item: {
         ...item,
         data: {
           ...item.data,
-          [image]: file.name,
+          video: file.name,
         },
       },
     });
   };
 
-  const handleImageRemoved = ({ type }: { type: "source" | "target" }) => {
-    const image = type === "source" ? "sourceImage" : "targetImage";
+  const handleVideoRemoved = () => {
     updateTaskItem({
       taskId,
       item: {
         ...item,
         data: {
           ...item.data,
-          [image]: null,
+          video: null,
         },
       },
     });
@@ -96,39 +81,25 @@ export function ImageEditItem({ item, taskId }: ImageEditItemProps) {
       </Button>
       <CardContent className="px-0 pb-0 pt-0">
         <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <MediaUploadArea
-              taskId={taskId}
-              media={sourceImageUrl}
-              label="Source Image"
-              type="image"
-              onMediaUploaded={({ file }) =>
-                handleImageUploaded({ file, type: "source" })
-              }
-              onMediaRemoved={() => handleImageRemoved({ type: "source" })}
-            />
-            <MediaUploadArea
-              taskId={taskId}
-              media={targetImageUrl}
-              label="Target Image"
-              type="image"
-              onMediaUploaded={({ file }) =>
-                handleImageUploaded({ file, type: "target" })
-              }
-              onMediaRemoved={() => handleImageRemoved({ type: "target" })}
-            />
-          </div>
+          <MediaUploadArea
+            taskId={taskId}
+            media={videoUrl}
+            label="Video"
+            type="video"
+            onMediaUploaded={handleVideoUploaded}
+            onMediaRemoved={handleVideoRemoved}
+          />
 
           <div>
             <Label
               htmlFor={`instruction-${item.id}`}
               className="text-sm font-medium mb-2 block"
             >
-              Edit Instruction
+              Text Prompt
             </Label>
             <Textarea
               id={`instruction-${item.id}`}
-              placeholder="Describe the editing task..."
+              placeholder="Describe the video..."
               defaultValue={item.data.instruction}
               onBlur={(e) => handleInstructionChanged(e.target.value)}
               className="w-full field-sizing-content resize-none min-h-0"

@@ -4,8 +4,8 @@ import { Trash2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { ImageUploadArea } from "@/components/image-upload-area";
-import { getImageUrl } from "@/lib/urls";
+import { MediaUploadArea } from "@/components/media-upload-area";
+import { getMediaUrl } from "@/lib/urls";
 import {
   useDeleteTaskItem,
   useUpdateTaskItem,
@@ -19,7 +19,7 @@ export function TextToImageItem({
   taskId: string;
   item: TextToImageTaskItem;
 }) {
-  const imageUrl = getImageUrl({ taskId, filename: item.data.image });
+  const imageUrl = getMediaUrl({ taskId, filename: item.data.image });
   const { mutate: updateTaskItem } = useUpdateTaskItem();
   const { mutate: deleteTaskItem } = useDeleteTaskItem();
 
@@ -81,12 +81,13 @@ export function TextToImageItem({
       </Button>
       <CardContent className="px-0 pb-0 pt-0">
         <div className="space-y-4">
-          <ImageUploadArea
+          <MediaUploadArea
             taskId={taskId}
-            image={imageUrl}
+            media={imageUrl}
             label="Image"
-            onImageUploaded={handleImageUploaded}
-            onImageRemoved={handleImageRemoved}
+            type="image"
+            onMediaUploaded={handleImageUploaded}
+            onMediaRemoved={handleImageRemoved}
           />
 
           <div>
