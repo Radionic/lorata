@@ -119,9 +119,25 @@ export const useDeleteTask = () => {
 
 export const useExportTask = () => {
   return useMutation({
-    mutationFn: async ({ taskId }: { taskId: string }) => {
+    mutationFn: async ({
+      taskId,
+      fps,
+      audio,
+      crf,
+      preset,
+    }: {
+      taskId: string;
+      fps?: number;
+      audio?: boolean;
+      crf?: number;
+      preset?: string;
+    }) => {
       const response = await fetch(`/api/tasks/${taskId}/export`, {
         method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ fps, audio, crf, preset }),
       });
 
       if (!response.ok) {

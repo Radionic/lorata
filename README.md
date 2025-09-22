@@ -13,7 +13,7 @@ Lorata has a built-in image/video editor that supports:
 - [ ] Edit image with cloud AI models (e.g. Nano Banana)
 - [ ] Extract image frames from video
 - [ ] Extract video segments from video
-- [ ] Export videos with different FPS
+- [x] Export videos with different FPS and audio on/off
 
 Lorata supports exporting tasks as zip files, with the following structure:
 
@@ -79,7 +79,7 @@ task-name.zip
 
 ## Getting Started
 
-Install [pnpm](https://pnpm.io/installation) first, then run:
+Install [pnpm](https://pnpm.io/installation) and [ffmpeg](https://ffmpeg.org/download.html) (for video conversion during export), then run:
 
 ```bash
 cp .env.example .env

@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { writeFile, mkdir, unlink } from "fs/promises";
+import { writeFile, mkdir } from "fs/promises";
 import { existsSync } from "fs";
 import path from "path";
+import { deleteVideo } from "@/lib/video";
 
 export async function POST(request: NextRequest) {
   const formData = await request.formData();
@@ -29,6 +30,10 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  if (overwrite) {
+    await deleteVideo(dataDir, file.name);
+  }
+
   const bytes = await file.arrayBuffer();
   const buffer = Buffer.from(bytes);
   await writeFile(filepath, buffer);
@@ -48,10 +53,8 @@ export async function DELETE(request: NextRequest) {
     );
   }
 
-  const filepath = path.join(process.cwd(), "data", taskId, filename);
-  if (existsSync(filepath)) {
-    await unlink(filepath);
-  }
+  const dataDir = path.join(process.cwd(), "data", taskId);
+  await deleteVideo(dataDir, filename);
 
   return NextResponse.json({});
 }

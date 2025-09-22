@@ -11,6 +11,7 @@ import {
 import archiver from "archiver";
 import path from "path";
 import { match } from "ts-pattern";
+import { convertVideo } from "@/lib/video";
 
 interface ImagePathInfo {
   absolutePath: string;
@@ -38,6 +39,13 @@ export async function POST(
   if (!taskId) {
     return NextResponse.json({ error: "Task ID is required" }, { status: 400 });
   }
+
+  const body = await request.json();
+  const fps = body?.fps ? parseFloat(body.fps) : undefined;
+  const audio =
+    typeof body?.audio === "boolean" ? Boolean(body.audio) : undefined;
+  const crf = body?.crf ? parseFloat(body.crf) : undefined;
+  const preset = body?.preset;
 
   const [task] = await db
     .select()
@@ -134,7 +142,19 @@ export async function POST(
         const video = itemData.video as string;
         const videoInfo = getImagePathInfo(task.id, video);
 
-        archive.file(videoInfo.absolutePath, {
+        let filePath = videoInfo.absolutePath;
+        const shouldProcess = (fps && fps > 0) || audio === false;
+        if (shouldProcess) {
+          const converted = await convertVideo({
+            inputPath: videoInfo.absolutePath,
+            fps,
+            audio,
+            crf,
+            preset,
+          });
+          filePath = converted;
+        }
+        archive.file(filePath, {
           name: `videos/${video}`,
         });
         archive.append(itemData.instruction, {
@@ -162,7 +182,20 @@ export async function POST(
         archive.file(sourceInfo.absolutePath, {
           name: `sources/${sourceImage}`,
         });
-        archive.file(targetInfo.absolutePath, {
+
+        let targetPath = targetInfo.absolutePath;
+        const shouldProcess = (fps && fps > 0) || audio === false;
+        if (shouldProcess) {
+          const converted = await convertVideo({
+            inputPath: targetInfo.absolutePath,
+            fps,
+            audio,
+            crf,
+            preset,
+          });
+          targetPath = converted;
+        }
+        archive.file(targetPath, {
           name: `targets/${sourceInfo.name}${targetInfo.extension}`,
         });
         archive.append(itemData.instruction, {
