@@ -293,6 +293,7 @@ export function MediaUploadArea({
           <VideoEditor
             videoEl={videoEl}
             videoName={mediaName}
+            taskId={taskId}
             onClose={() => setShowEditor(false)}
           />
         </div>

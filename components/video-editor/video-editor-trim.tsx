@@ -6,24 +6,34 @@ import { useHotkeys } from "react-hotkeys-hook";
 
 const MIN_RANGE = 1; // seconds
 
-export function VideoEditorTrim({ videoSrc }: { videoSrc: string }) {
+export function VideoEditorTrim({
+  videoSrc,
+  start,
+  end,
+  onStartChanged,
+  onEndChanged,
+}: {
+  videoSrc: string;
+  start: number;
+  end: number;
+  onStartChanged: (v: number) => void;
+  onEndChanged: (v: number) => void;
+}) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const timelineRef = useRef<HTMLDivElement | null>(null);
 
   const [duration, setDuration] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
-  const [start, setStart] = useState(0);
-  const [end, setEnd] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
 
   const handleLoadedMetadata = useCallback(() => {
     const v = videoRef.current;
     const d = v && Number.isFinite(v.duration) ? v.duration : 0;
     setDuration(d);
-    setStart(0);
-    setEnd(Math.max(d, MIN_RANGE));
+    onStartChanged(0);
+    onEndChanged(Math.max(d, MIN_RANGE));
     setCurrentTime(0);
-  }, []);
+  }, [onStartChanged, onEndChanged]);
 
   const handleTimeUpdate = useCallback(() => {
     const v = videoRef.current;
@@ -81,7 +91,7 @@ export function VideoEditorTrim({ videoSrc }: { videoSrc: string }) {
 
   const commitStart = (next: number) => {
     const clamped = clamp(next, 0, Math.max(0, end - MIN_RANGE));
-    setStart(clamped);
+    onStartChanged(clamped);
     const v = videoRef.current;
     const t = v?.currentTime ?? currentTime;
     if (t < clamped) {
@@ -97,7 +107,7 @@ export function VideoEditorTrim({ videoSrc }: { videoSrc: string }) {
       Math.min(duration, start + MIN_RANGE),
       duration || next
     );
-    setEnd(clamped);
+    onEndChanged(clamped);
     const v = videoRef.current;
     const t = v?.currentTime ?? currentTime;
     if (t > clamped) {

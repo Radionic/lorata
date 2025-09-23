@@ -1,6 +1,6 @@
 import { spawn } from "child_process";
 import { existsSync } from "fs";
-import { mkdir, readdir, stat, unlink } from "fs/promises";
+import { mkdir, readdir, rename, stat, unlink } from "fs/promises";
 import path from "path";
 
 /**
@@ -103,6 +103,70 @@ export async function convertVideo({
 }
 
 /**
+ * Extract a segment from a video using ffmpeg without re-encoding.
+ * - Uses stream copy for both video and audio (`-c copy`).
+ * - The file will be overwritten if it already exists.
+ *
+ * Notes:
+ * - Requires ffmpeg to be installed and available on PATH.
+ */
+export async function extractVideoSegment({
+  inputPath,
+  start,
+  end,
+}: {
+  inputPath: string;
+  start: number; // seconds
+  end: number; // seconds
+}) {
+  if (!isFinite(start) || start < 0) {
+    throw new Error("Invalid start time");
+  }
+  if (!isFinite(end) || end <= 0) {
+    throw new Error("Invalid end time");
+  }
+  if (end <= start) {
+    throw new Error("End time must be greater than start time");
+  }
+
+  const dir = path.dirname(inputPath);
+  const outputDir = path.join(dir, "passthrough");
+  await mkdir(outputDir, { recursive: true });
+  const outputPath = path.join(outputDir, path.basename(inputPath));
+
+  const dur = end - start;
+  const args: string[] = [
+    "-y",
+    "-ss",
+    start.toFixed(3),
+    "-i",
+    inputPath,
+    "-t",
+    dur.toFixed(3),
+    "-c",
+    "copy",
+    outputPath,
+  ];
+
+  await new Promise<void>((resolve, reject) => {
+    const child = spawn("ffmpeg", args);
+    let stderr = "";
+
+    child.on("error", (err) => reject(err));
+    child.stderr?.on("data", (d) => {
+      stderr += d.toString();
+    });
+    child.on("close", (code) => {
+      if (code === 0) return resolve();
+      reject(new Error(`ffmpeg exited with code ${code}: ${stderr}`));
+    });
+  });
+
+  await unlink(inputPath);
+  await rename(outputPath, inputPath);
+}
+
+/**
  * Delete videos and converted variants of a given filename, including
  * - fps_*
  * - fps_*__audio_off
@@ -123,14 +187,7 @@ export async function deleteVideo(baseDir: string, filename: string) {
   const entries: string[] = await readdir(baseDir);
   await Promise.all(
     entries.map(async (entry) => {
-      if (
-        !(
-          entry.startsWith("fps_") ||
-          entry === "audio_off" ||
-          entry === "passthrough"
-        )
-      )
-        return;
+      if (!(entry.startsWith("fps_") || entry === "audio_off")) return;
 
       const subdir = path.join(baseDir, entry);
       if (!(await stat(subdir)).isDirectory()) return;
