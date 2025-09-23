@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { useDeleteMedia, useUploadMedia } from "@/lib/queries/use-media";
 import { useMediaLoader } from "@/lib/hooks/use-media-loader";
 import { ImageEditor } from "./image-editor/image-editor";
+import { VideoEditor } from "./video-editor/video-editor";
 
 function formatDuration(seconds: number) {
   if (!seconds || !isFinite(seconds)) return "";
@@ -210,7 +211,7 @@ export function MediaUploadArea({
               <video
                 src={videoEl?.src || media}
                 className="max-w-full max-h-48 mx-auto rounded"
-                controls
+                onClick={() => media && setShowEditor(true)}
               />
             )}
             <Button
@@ -282,6 +283,17 @@ export function MediaUploadArea({
               await _uploadMedia({ file: newImage, overwrite: true });
               setShowEditor(false);
             }}
+          />
+        </div>
+      )}
+
+      {/* Video Editor */}
+      {showEditor && type === "video" && videoEl && mediaName && (
+        <div className="fixed inset-0 z-50 bg-background">
+          <VideoEditor
+            videoEl={videoEl}
+            videoName={mediaName}
+            onClose={() => setShowEditor(false)}
           />
         </div>
       )}
