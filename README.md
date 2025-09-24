@@ -10,6 +10,7 @@ Lorata has a built-in image/video editor that supports:
 
 - [x] Draw on image
 - [x] Crop image
+- [x] Generate image caption with AI
 - [ ] Edit image with cloud AI models (e.g. Nano Banana)
 - [ ] Extract image frames from video
 - [ ] Extract video segments from video
@@ -79,11 +80,19 @@ task-name.zip
 
 ## Getting Started
 
-Install [pnpm](https://pnpm.io/installation) and [ffmpeg](https://ffmpeg.org/download.html) (for video conversion during export), then run:
+Install [pnpm](https://pnpm.io/installation) and [ffmpeg](https://ffmpeg.org/download.html), then run:
 
 ```bash
 cp .env.example .env
 pnpm install
 pnpm db:push
 pnpm dev
+```
+
+(Optional) If you need image captioning model, configure `.env` with your OpenAI-compatible API key and model:
+
+```bash
+OPENAI_API_MODEL=
+OPENAI_API_KEY=
+OPENAI_API_BASE_URL=
 ```

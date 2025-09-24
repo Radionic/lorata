@@ -2,7 +2,6 @@ import { ImageToVideoTaskItem } from "@/lib/types";
 
 import { Trash2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { MediaUploadArea } from "@/components/media-upload-area";
 import { getMediaUrl } from "@/lib/urls";
@@ -10,7 +9,8 @@ import {
   useDeleteTaskItem,
   useUpdateTaskItem,
 } from "@/lib/queries/use-task-item";
-import { Textarea } from "@/components/ui/textarea";
+import { InstructionInput } from "../instruction-input";
+import { useState } from "react";
 
 export function ImageToVideoItem({
   taskId,
@@ -27,6 +27,8 @@ export function ImageToVideoItem({
     taskId,
     filename: item.data.targetVideo,
   });
+  const [instruction, setInstruction] = useState(item.data.instruction);
+
   const { mutate: updateTaskItem } = useUpdateTaskItem();
   const { mutate: deleteTaskItem } = useDeleteTaskItem();
 
@@ -64,7 +66,8 @@ export function ImageToVideoItem({
     });
   };
 
-  const handleInstructionChanged = (instruction: string) => {
+  const handleInstructionSettled = (instruction: string) => {
+    setInstruction(instruction);
     updateTaskItem({
       taskId,
       item: {
@@ -119,21 +122,13 @@ export function ImageToVideoItem({
             />
           </div>
 
-          <div>
-            <Label
-              htmlFor={`instruction-${item.id}`}
-              className="text-sm font-medium mb-2 block"
-            >
-              Instruction
-            </Label>
-            <Textarea
-              id={`instruction-${item.id}`}
-              placeholder="Describe the image-to-video task..."
-              defaultValue={item.data.instruction}
-              onBlur={(e) => handleInstructionChanged(e.target.value)}
-              className="w-full field-sizing-content resize-none min-h-0"
-            />
-          </div>
+          <InstructionInput
+            title="Instruction"
+            value={instruction}
+            onChange={setInstruction}
+            onSettle={handleInstructionSettled}
+            disableAI
+          />
         </div>
       </CardContent>
     </Card>

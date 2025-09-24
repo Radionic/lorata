@@ -2,7 +2,6 @@
 
 import { Trash2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { MediaUploadArea } from "@/components/media-upload-area";
 import { ImageEditingTaskItem } from "@/lib/types";
@@ -11,7 +10,8 @@ import {
   useDeleteTaskItem,
   useUpdateTaskItem,
 } from "@/lib/queries/use-task-item";
-import { Textarea } from "@/components/ui/textarea";
+import { InstructionInput } from "../instruction-input";
+import { useState } from "react";
 
 interface ImageEditItemProps {
   item: ImageEditingTaskItem;
@@ -27,6 +27,8 @@ export function ImageEditItem({ item, taskId }: ImageEditItemProps) {
     taskId,
     filename: item.data.targetImage,
   });
+  const [instruction, setInstruction] = useState(item.data.instruction);
+
   const { mutate: updateTaskItem } = useUpdateTaskItem();
   const { mutate: deleteTaskItem } = useDeleteTaskItem();
 
@@ -64,7 +66,8 @@ export function ImageEditItem({ item, taskId }: ImageEditItemProps) {
     });
   };
 
-  const handleInstructionChanged = (instruction: string) => {
+  const handleInstructionSettled = (instruction: string) => {
+    setInstruction(instruction);
     updateTaskItem({
       taskId,
       item: {
@@ -119,21 +122,15 @@ export function ImageEditItem({ item, taskId }: ImageEditItemProps) {
             />
           </div>
 
-          <div>
-            <Label
-              htmlFor={`instruction-${item.id}`}
-              className="text-sm font-medium mb-2 block"
-            >
-              Edit Instruction
-            </Label>
-            <Textarea
-              id={`instruction-${item.id}`}
-              placeholder="Describe the editing task..."
-              defaultValue={item.data.instruction}
-              onBlur={(e) => handleInstructionChanged(e.target.value)}
-              className="w-full field-sizing-content resize-none min-h-0"
-            />
-          </div>
+          <InstructionInput
+            title="Edit Instruction"
+            value={instruction}
+            onChange={setInstruction}
+            onSettle={handleInstructionSettled}
+            images={[sourceImageUrl, targetImageUrl].filter(
+              (url) => typeof url === "string"
+            )}
+          />
         </div>
       </CardContent>
     </Card>
