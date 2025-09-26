@@ -16,6 +16,10 @@ Lorata has a built-in image/video editor that supports:
 - [ ] Extract image frames from video
 - [x] Export videos with different FPS and audio on/off
 
+https://github.com/user-attachments/assets/61568ad8-c7da-4591-91f0-28ec832d7c5b
+
+https://github.com/user-attachments/assets/053af64f-8f38-46ba-8659-d7d8caf66d29
+
 Lorata supports exporting tasks as zip files, with the following structure:
 
 ```
