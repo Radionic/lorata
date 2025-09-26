@@ -10,7 +10,6 @@ import {
   useUpdateTaskItem,
 } from "@/lib/queries/use-task-item";
 import { InstructionInput } from "../instruction-input";
-import { useState } from "react";
 
 export function TextToVideoItem({
   taskId,
@@ -20,7 +19,6 @@ export function TextToVideoItem({
   item: TextToVideoTaskItem;
 }) {
   const videoUrl = getMediaUrl({ taskId, filename: item.data.video });
-  const [instruction, setInstruction] = useState(item.data.instruction);
   const { mutate: updateTaskItem } = useUpdateTaskItem();
   const { mutate: deleteTaskItem } = useDeleteTaskItem();
 
@@ -51,7 +49,6 @@ export function TextToVideoItem({
   };
 
   const handleInstructionSettled = (instruction: string) => {
-    setInstruction(instruction);
     updateTaskItem({
       taskId,
       item: {
@@ -93,11 +90,13 @@ export function TextToVideoItem({
           />
 
           <InstructionInput
+            key={item.data.instruction}
+            taskId={taskId}
+            itemId={item.id}
             title="Text Prompt"
-            value={instruction}
-            onChange={setInstruction}
+            defaultValue={item.data.instruction}
             onSettle={handleInstructionSettled}
-            disableAI
+            hasVideo
           />
         </div>
       </CardContent>

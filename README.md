@@ -10,10 +10,10 @@ Lorata has a built-in image/video editor that supports:
 
 - [x] Draw on image
 - [x] Crop image
-- [x] Generate image caption with AI
+- [x] Trim video
+- [x] Generate image/video caption with AI
 - [ ] Edit image with cloud AI models (e.g. Nano Banana)
 - [ ] Extract image frames from video
-- [ ] Extract video segments from video
 - [x] Export videos with different FPS and audio on/off
 
 Lorata supports exporting tasks as zip files, with the following structure:
@@ -89,7 +89,7 @@ pnpm db:push
 pnpm dev
 ```
 
-(Optional) If you need image captioning model, configure `.env` with your OpenAI-compatible API key and model:
+(Optional) If you need image/video captioning model, configure `.env` with your OpenAI-compatible API key and model:
 
 ```bash
 OPENAI_API_MODEL=

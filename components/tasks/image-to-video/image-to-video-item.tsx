@@ -10,7 +10,6 @@ import {
   useUpdateTaskItem,
 } from "@/lib/queries/use-task-item";
 import { InstructionInput } from "../instruction-input";
-import { useState } from "react";
 
 export function ImageToVideoItem({
   taskId,
@@ -27,7 +26,6 @@ export function ImageToVideoItem({
     taskId,
     filename: item.data.targetVideo,
   });
-  const [instruction, setInstruction] = useState(item.data.instruction);
 
   const { mutate: updateTaskItem } = useUpdateTaskItem();
   const { mutate: deleteTaskItem } = useDeleteTaskItem();
@@ -67,7 +65,6 @@ export function ImageToVideoItem({
   };
 
   const handleInstructionSettled = (instruction: string) => {
-    setInstruction(instruction);
     updateTaskItem({
       taskId,
       item: {
@@ -123,11 +120,13 @@ export function ImageToVideoItem({
           </div>
 
           <InstructionInput
+            key={item.data.instruction}
+            taskId={taskId}
+            itemId={item.id}
             title="Instruction"
-            value={instruction}
-            onChange={setInstruction}
+            defaultValue={item.data.instruction}
             onSettle={handleInstructionSettled}
-            disableAI
+            hasVideo
           />
         </div>
       </CardContent>

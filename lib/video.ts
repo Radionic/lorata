@@ -1,15 +1,27 @@
 import { spawn } from "child_process";
 import { existsSync } from "fs";
-import { mkdir, readdir, rename, stat, unlink } from "fs/promises";
+import { mkdir, readdir, rename, rm, stat, unlink } from "fs/promises";
 import path from "path";
+
+async function executeFFmpeg(args: string[]) {
+  await new Promise<void>((resolve, reject) => {
+    const child = spawn("ffmpeg", args);
+    let stderr = "";
+
+    child.on("error", (err) => reject(err));
+    child.stderr?.on("data", (d) => {
+      stderr += d.toString();
+    });
+    child.on("close", (code) => {
+      if (code === 0) return resolve();
+      reject(new Error(`ffmpeg exited with code ${code}: ${stderr}`));
+    });
+  });
+}
 
 /**
  * Convert a video using ffmpeg.
  * Stores the converted file under: {original_dir}/{subdir}/{original_filename}
- *
- * Notes:
- * - Requires ffmpeg to be installed and available on PATH.
- * - Keeps the original container extension (mp4/webm).
  */
 export async function convertVideo({
   inputPath,
@@ -85,19 +97,7 @@ export async function convertVideo({
 
   args.push(outputPath);
 
-  await new Promise<void>((resolve, reject) => {
-    const child = spawn("ffmpeg", args);
-    let stderr = "";
-
-    child.on("error", (err) => reject(err));
-    child.stderr?.on("data", (d) => {
-      stderr += d.toString();
-    });
-    child.on("close", (code) => {
-      if (code === 0) return resolve();
-      reject(new Error(`ffmpeg exited with code ${code}: ${stderr}`));
-    });
-  });
+  await executeFFmpeg(args);
 
   return outputPath;
 }
@@ -106,9 +106,6 @@ export async function convertVideo({
  * Extract a segment from a video using ffmpeg without re-encoding.
  * - Uses stream copy for both video and audio (`-c copy`).
  * - The file will be overwritten if it already exists.
- *
- * Notes:
- * - Requires ffmpeg to be installed and available on PATH.
  */
 export async function extractVideoSegment({
   inputPath,
@@ -148,19 +145,7 @@ export async function extractVideoSegment({
     outputPath,
   ];
 
-  await new Promise<void>((resolve, reject) => {
-    const child = spawn("ffmpeg", args);
-    let stderr = "";
-
-    child.on("error", (err) => reject(err));
-    child.stderr?.on("data", (d) => {
-      stderr += d.toString();
-    });
-    child.on("close", (code) => {
-      if (code === 0) return resolve();
-      reject(new Error(`ffmpeg exited with code ${code}: ${stderr}`));
-    });
-  });
+  await executeFFmpeg(args);
 
   await unlink(inputPath);
   await rename(outputPath, inputPath);
@@ -198,4 +183,58 @@ export async function deleteVideo(baseDir: string, filename: string) {
       }
     })
   );
+}
+
+/**
+ * Extract frames from a video using ffmpeg.
+ * - Extracts one frame every `interval` seconds, up to `numFrames` frames.
+ * - Saves to: {original_dir}/frames/{original_video_name}/frame_1.jpg
+ */
+export async function extractFrames(
+  inputPath: string,
+  numFrames: number,
+  interval: number
+): Promise<string[]> {
+  if (!Number.isInteger(numFrames) || numFrames <= 0) {
+    throw new Error("Invalid numFrames value");
+  }
+  if (!isFinite(interval) || interval <= 0) {
+    throw new Error("Invalid interval value");
+  }
+
+  const dir = path.dirname(inputPath);
+  const { name } = path.parse(inputPath); // original video name without extension
+  const outputDir = path.join(dir, "frames", name);
+
+  // Remove existing frames first
+  if (existsSync(outputDir)) {
+    await rm(outputDir, { recursive: true });
+  }
+  await mkdir(outputDir, { recursive: true });
+
+  const outputPattern = path.join(outputDir, "frame_%d.jpg");
+
+  const args: string[] = [
+    "-y",
+    "-i",
+    inputPath,
+    "-vf",
+    `fps=1/${interval}`,
+    "-vframes",
+    String(numFrames),
+    "-q:v",
+    "2",
+    "-start_number",
+    "1",
+    outputPattern,
+  ];
+
+  await executeFFmpeg(args);
+
+  const result: string[] = [];
+  for (let i = 1; i <= numFrames; i++) {
+    const p = path.join(outputDir, `frame_${i}.jpg`);
+    if (existsSync(p)) result.push(p);
+  }
+  return result;
 }

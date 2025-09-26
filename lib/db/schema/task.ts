@@ -1,4 +1,6 @@
 import { sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { relations } from "drizzle-orm";
+import { taskItemsTable } from "./task-item";
 
 const taskType = [
   "text-to-image",
@@ -18,5 +20,9 @@ export const tasksTable = sqliteTable("tasks", {
     .notNull()
     .$defaultFn(() => new Date().toISOString()),
 });
+
+export const tasksRelations = relations(tasksTable, ({ many }) => ({
+  taskItems: many(taskItemsTable),
+}));
 
 export type Task = typeof tasksTable.$inferSelect;

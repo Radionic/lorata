@@ -5,21 +5,24 @@ import { useState } from "react";
 import { GenerateInstructionDialog } from "./dialog/generate-instruction-dialog";
 
 export function InstructionInput({
-  images,
+  taskId,
+  itemId,
+  hasVideo,
   title,
-  value,
+  defaultValue,
   disableAI,
-  onChange,
   onSettle,
 }: {
-  images?: string[];
+  taskId: string;
+  itemId: string;
+  hasVideo?: boolean;
   title: string;
-  value?: string;
+  defaultValue?: string;
   disableAI?: boolean;
-  onChange?: (value: string) => void;
   onSettle?: (value: string) => void;
 }) {
   const [aiDialogOpen, setAiDialogOpen] = useState(false);
+  const [instruction, setInstruction] = useState(defaultValue);
 
   return (
     <div>
@@ -35,18 +38,19 @@ export function InstructionInput({
 
       <Textarea
         placeholder="Describe the image-to-video task..."
-        value={value}
-        onChange={(e) => onChange?.(e.target.value)}
+        value={instruction}
+        onChange={(e) => setInstruction(e.target.value)}
         onBlur={(e) => onSettle?.(e.target.value)}
         className="w-full field-sizing-content resize-none min-h-0"
       />
 
       {aiDialogOpen && (
         <GenerateInstructionDialog
-          images={images}
+          taskId={taskId}
+          itemId={itemId}
+          hasVideo={hasVideo}
           open={aiDialogOpen}
           onOpenChange={setAiDialogOpen}
-          onInstructionGenerated={onSettle}
         />
       )}
     </div>

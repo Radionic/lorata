@@ -11,7 +11,6 @@ import {
   useUpdateTaskItem,
 } from "@/lib/queries/use-task-item";
 import { InstructionInput } from "../instruction-input";
-import { useState } from "react";
 
 interface ImageEditItemProps {
   item: ImageEditingTaskItem;
@@ -27,7 +26,6 @@ export function ImageEditItem({ item, taskId }: ImageEditItemProps) {
     taskId,
     filename: item.data.targetImage,
   });
-  const [instruction, setInstruction] = useState(item.data.instruction);
 
   const { mutate: updateTaskItem } = useUpdateTaskItem();
   const { mutate: deleteTaskItem } = useDeleteTaskItem();
@@ -67,7 +65,6 @@ export function ImageEditItem({ item, taskId }: ImageEditItemProps) {
   };
 
   const handleInstructionSettled = (instruction: string) => {
-    setInstruction(instruction);
     updateTaskItem({
       taskId,
       item: {
@@ -123,13 +120,12 @@ export function ImageEditItem({ item, taskId }: ImageEditItemProps) {
           </div>
 
           <InstructionInput
+            key={item.data.instruction}
+            taskId={taskId}
+            itemId={item.id}
             title="Edit Instruction"
-            value={instruction}
-            onChange={setInstruction}
+            defaultValue={item.data.instruction}
             onSettle={handleInstructionSettled}
-            images={[sourceImageUrl, targetImageUrl].filter(
-              (url) => typeof url === "string"
-            )}
           />
         </div>
       </CardContent>

@@ -8,16 +8,21 @@ import {
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useLocalStorage } from "usehooks-ts";
-import { useCompletion } from "@ai-sdk/react";
-import { toast } from "sonner";
+import { useAICaptioning } from "@/lib/queries/use-ai";
+import { Label } from "@/components/ui/label";
+import { VideoOptions } from "@/app/api/ai/route";
+import { Input } from "@/components/ui/input";
 
 export function GenerateInstructionDialog({
-  images,
+  taskId,
+  itemId,
+  hasVideo,
   open,
   onOpenChange,
-  onInstructionGenerated,
 }: {
-  images?: string[];
+  taskId: string;
+  itemId: string;
+  hasVideo?: boolean;
   open: boolean;
   onOpenChange?: (open: boolean) => void;
   onInstructionGenerated?: (instruction: string) => void;
@@ -26,24 +31,25 @@ export function GenerateInstructionDialog({
     "generate-instruction-prompt",
     "You are an image captioning expert, please write a caption for this image"
   );
+  const [videoOptions, setVideoOptions] = useLocalStorage<VideoOptions>(
+    "generate-instruction-video-options",
+    {
+      numFrames: 5,
+      interval: 1,
+    }
+  );
 
-  const { complete, isLoading } = useCompletion({
-    api: "/api/ai",
-  });
+  const { mutateAsync: generateInstruction, isLoading } = useAICaptioning();
 
   const onSubmit = async () => {
-    const result = await complete(prompt, {
-      body: {
-        images,
-      },
+    await generateInstruction({
+      taskId,
+      prompt,
+      itemId,
+      videoOptions: hasVideo ? videoOptions : undefined,
     });
 
-    if (result) {
-      onInstructionGenerated?.(result);
-      onOpenChange?.(false);
-    } else {
-      toast.error("Failed to generate instruction");
-    }
+    onOpenChange?.(false);
   };
 
   return (
@@ -53,32 +59,52 @@ export function GenerateInstructionDialog({
           <DialogTitle>Generate instruction</DialogTitle>
         </DialogHeader>
 
-        <Textarea
-          placeholder="Prompt"
-          value={prompt}
-          onChange={(e) => setPrompt(e.target.value)}
-          className="w-full field-sizing-content resize-none min-h-0"
-        />
+        <div className="space-y-2">
+          <Label>Prompt</Label>
+          <Textarea
+            placeholder="Prompt"
+            value={prompt}
+            onChange={(e) => setPrompt(e.target.value)}
+            className="w-full field-sizing-content resize-none min-h-0"
+          />
+        </div>
 
-        {images && images.length > 0 ? (
-          <>
-            <p>The following {images?.length} images will be used:</p>
-            <div className="flex flex-wrap gap-2">
-              {images?.map((image) => (
-                <img key={image} src={image} className="w-16 object-cover" />
-              ))}
+        {hasVideo && (
+          <div className="space-y-2">
+            <Label>Video Options</Label>
+            <div className="text-sm">
+              Extract{" "}
+              <Input
+                type="number"
+                className="w-14 inline mb-1"
+                value={videoOptions.numFrames}
+                onChange={(e) =>
+                  setVideoOptions({
+                    ...videoOptions,
+                    numFrames: parseInt(e.target.value),
+                  })
+                }
+              />{" "}
+              video frames for video captioning. Extract every{" "}
+              <Input
+                type="number"
+                className="w-14 inline"
+                value={videoOptions.interval}
+                onChange={(e) =>
+                  setVideoOptions({
+                    ...videoOptions,
+                    interval: parseInt(e.target.value),
+                  })
+                }
+              />{" "}
+              seconds.
             </div>
-          </>
-        ) : (
-          <p className="text-red-500">Warning: no images uploaded</p>
+          </div>
         )}
+
         <DialogFooter>
           <DialogFooter>
-            <Button
-              type="submit"
-              onClick={onSubmit}
-              disabled={isLoading || !images?.length}
-            >
+            <Button type="submit" onClick={onSubmit} disabled={isLoading}>
               {isLoading ? "Generating..." : "Generate"}
             </Button>
           </DialogFooter>

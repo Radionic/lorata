@@ -1,5 +1,6 @@
 import { index, sqliteTable, text } from "drizzle-orm/sqlite-core";
 import { tasksTable } from "./task";
+import { relations } from "drizzle-orm";
 
 export const taskItemsTable = sqliteTable(
   "task_items",
@@ -20,5 +21,12 @@ export const taskItemsTable = sqliteTable(
     taskIdIdx: index("task_id_idx").on(table.taskId),
   })
 );
+
+export const taskItemsRelations = relations(taskItemsTable, ({ one }) => ({
+  task: one(tasksTable, {
+    fields: [taskItemsTable.taskId],
+    references: [tasksTable.id],
+  }),
+}));
 
 export type TaskItem = typeof taskItemsTable.$inferSelect;
