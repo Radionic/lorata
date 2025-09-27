@@ -7,6 +7,7 @@ import { Button } from "../ui/button";
 import { toast } from "sonner";
 import { ImageEditorCrop, ImageEditorCropRef } from "./image-editor-crop";
 import { useLocalStorage } from "usehooks-ts";
+import { useHotkeys } from "react-hotkeys-hook";
 
 export function ImageEditor({
   imageEl,
@@ -40,6 +41,8 @@ export function ImageEditor({
     await navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
     toast.success("Copied to clipboard");
   };
+
+  useHotkeys("esc", () => onClose?.());
 
   return (
     <div className="flex flex-col h-full">

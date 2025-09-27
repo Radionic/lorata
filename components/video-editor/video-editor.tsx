@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { VideoEditorTrim } from "./video-editor-trim";
 import { useState, useMemo } from "react";
 import { useTrimVideo } from "@/lib/queries/use-video";
+import { useHotkeys } from "react-hotkeys-hook";
 
 export function VideoEditor({
   videoEl,
@@ -47,6 +48,8 @@ export function VideoEditor({
       setEditorSrc((prev) => prev + "?t=" + Date.now());
     }
   };
+
+  useHotkeys("esc", () => onClose?.());
 
   return (
     <div className="flex flex-col h-full">
