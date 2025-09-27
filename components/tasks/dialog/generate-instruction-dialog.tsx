@@ -6,13 +6,14 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import { useLocalStorage } from "usehooks-ts";
 import { useAICaptioning } from "@/lib/queries/use-ai";
 import { Label } from "@/components/ui/label";
 import { VideoOptions } from "@/app/api/ai/route";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
+import { Prompt, PromptEditor } from "../prompt-editor";
+import { toast } from "sonner";
 
 export function GenerateInstructionDialog({
   taskId,
@@ -28,10 +29,33 @@ export function GenerateInstructionDialog({
   onOpenChange?: (open: boolean) => void;
   onInstructionGenerated?: (instruction: string) => void;
 }) {
-  const [prompt, setPrompt] = useLocalStorage<string>(
-    "generate-instruction-prompt",
-    "You are an image captioning expert, please write a caption for this image"
+  const [prompts, setPrompts] = useLocalStorage<Prompt[]>(
+    "generate-instruction-prompts",
+    [
+      {
+        id: "image-captioning",
+        name: "Image Captioning",
+        content:
+          "You are an image captioning expert, please describe this image in 1 sentence.",
+      },
+      {
+        id: "image-editing",
+        name: "Image Editing",
+        content:
+          "Please write a 'Edit instruction' to transform the first image to the second image in 1 sentence.",
+      },
+      {
+        id: "video-captioning",
+        name: "Video Captioning",
+        content:
+          "You are a video captioning expert, please describe this video in 1 sentence.",
+      },
+    ]
   );
+  const [selectedPromptId, setSelectedPromptId] = useLocalStorage<
+    string | null
+  >("generate-instruction-selected-prompt-id", null);
+
   const [videoOptions, setVideoOptions] = useLocalStorage<VideoOptions>(
     "generate-instruction-video-options",
     {
@@ -39,14 +63,19 @@ export function GenerateInstructionDialog({
       interval: 1,
     }
   );
-  const [overwriteInstruction, setOverwriteInstruction] = useLocalStorage<boolean>(
-    "generate-instruction-overwrite",
-    false
-  );
+
+  const [overwriteInstruction, setOverwriteInstruction] =
+    useLocalStorage<boolean>("generate-instruction-overwrite", false);
 
   const { mutateAsync: generateInstruction, isLoading } = useAICaptioning();
 
   const onSubmit = async () => {
+    const prompt = prompts.find((p) => p.id === selectedPromptId)?.content;
+    if (!prompt) {
+      toast.error("Please select a prompt");
+      return;
+    }
+
     await generateInstruction({
       taskId,
       prompt,
@@ -67,23 +96,13 @@ export function GenerateInstructionDialog({
 
         <div className="space-y-2">
           <Label>Prompt</Label>
-          <Textarea
-            placeholder="Prompt"
-            value={prompt}
-            onChange={(e) => setPrompt(e.target.value)}
-            className="w-full field-sizing-content resize-none min-h-0"
+          <PromptEditor
+            prompts={prompts}
+            onPromptsChange={setPrompts}
+            selectedId={selectedPromptId}
+            onSelectedChange={(id) => setSelectedPromptId(id)}
           />
         </div>
-
-        {!itemId && (
-          <div className="flex items-center gap-3">
-            <Switch
-              checked={overwriteInstruction}
-              onCheckedChange={setOverwriteInstruction}
-            />
-            <Label>Overwrite existing instructions</Label>
-          </div>
-        )}
 
         {hasVideo && (
           <div className="space-y-2">
@@ -92,7 +111,7 @@ export function GenerateInstructionDialog({
               Extract{" "}
               <Input
                 type="number"
-                className="w-14 inline mb-1"
+                className="w-14 h-8 inline mb-1"
                 value={videoOptions.numFrames}
                 onChange={(e) =>
                   setVideoOptions({
@@ -104,7 +123,7 @@ export function GenerateInstructionDialog({
               video frames for video captioning. Extract every{" "}
               <Input
                 type="number"
-                className="w-14 inline"
+                className="w-14 h-8 inline"
                 value={videoOptions.interval}
                 onChange={(e) =>
                   setVideoOptions({
@@ -115,6 +134,16 @@ export function GenerateInstructionDialog({
               />{" "}
               seconds.
             </div>
+          </div>
+        )}
+
+        {!itemId && (
+          <div className="flex items-center gap-3">
+            <Switch
+              checked={overwriteInstruction}
+              onCheckedChange={setOverwriteInstruction}
+            />
+            <Label>Overwrite existing instructions</Label>
           </div>
         )}
 
