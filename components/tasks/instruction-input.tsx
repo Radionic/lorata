@@ -9,6 +9,7 @@ export function InstructionInput({
   itemId,
   hasVideo,
   title,
+  description,
   defaultValue,
   disableAI,
   onSettle,
@@ -17,6 +18,7 @@ export function InstructionInput({
   itemId: string;
   hasVideo?: boolean;
   title: string;
+  description: string;
   defaultValue?: string;
   disableAI?: boolean;
   onSettle?: (value: string) => void;
@@ -37,7 +39,7 @@ export function InstructionInput({
       </div>
 
       <Textarea
-        placeholder="Describe the image-to-video task..."
+        placeholder={description}
         value={instruction}
         onChange={(e) => setInstruction(e.target.value)}
         onBlur={(e) => onSettle?.(e.target.value)}

@@ -93,7 +93,8 @@ export function TextToVideoItem({
             key={item.data.instruction}
             taskId={taskId}
             itemId={item.id}
-            title="Text Prompt"
+            title="Description"
+            description="Describe the video..."
             defaultValue={item.data.instruction}
             onSettle={handleInstructionSettled}
             hasVideo

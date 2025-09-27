@@ -123,7 +123,8 @@ export function ImageToVideoItem({
             key={item.data.instruction}
             taskId={taskId}
             itemId={item.id}
-            title="Instruction"
+            title="Description"
+            description="Describe the video..."
             defaultValue={item.data.instruction}
             onSettle={handleInstructionSettled}
             hasVideo

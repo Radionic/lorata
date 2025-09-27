@@ -124,7 +124,8 @@ export function ImageEditItem({
             key={item.data.instruction}
             taskId={taskId}
             itemId={item.id}
-            title="Edit Instruction"
+            title="Editing Instruction"
+            description="Describe the editing..."
             defaultValue={item.data.instruction}
             onSettle={handleInstructionSettled}
           />

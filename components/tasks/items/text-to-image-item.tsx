@@ -93,7 +93,8 @@ export function TextToImageItem({
             key={item.data.instruction}
             taskId={taskId}
             itemId={item.id}
-            title="Text Prompt"
+            title="Description"
+            description="Describe the image..."
             defaultValue={item.data.instruction}
             onSettle={handleInstructionSettled}
           />

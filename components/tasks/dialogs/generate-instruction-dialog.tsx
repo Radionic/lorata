@@ -21,13 +21,14 @@ export function GenerateInstructionDialog({
   hasVideo,
   open,
   onOpenChange,
+  onInstructionGenerated,
 }: {
   taskId: string;
   itemId?: string;
   hasVideo?: boolean;
   open: boolean;
   onOpenChange?: (open: boolean) => void;
-  onInstructionGenerated?: (instruction: string) => void;
+  onInstructionGenerated?: () => void;
 }) {
   const [prompts, setPrompts] = useLocalStorage<Prompt[]>(
     "generate-instruction-prompts",
@@ -85,6 +86,7 @@ export function GenerateInstructionDialog({
     });
 
     onOpenChange?.(false);
+    onInstructionGenerated?.();
   };
 
   return (
