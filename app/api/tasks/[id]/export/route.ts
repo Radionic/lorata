@@ -31,6 +31,16 @@ function getImagePathInfo(taskId: string, imagePath: string): ImagePathInfo {
   };
 }
 
+function applyAffixes(
+  instruction: string,
+  prefix?: string,
+  suffix?: string
+): string {
+  const prefixText = prefix ? `${prefix} ` : "";
+  const suffixText = suffix ? ` ${suffix}` : "";
+  return `${prefixText}${instruction}${suffixText}`;
+}
+
 export async function POST(
   request: NextRequest,
   { params }: { params: { id: string } }
@@ -42,10 +52,10 @@ export async function POST(
 
   const body = await request.json();
   const fps = body?.fps ? parseFloat(body.fps) : undefined;
-  const audio =
-    typeof body?.audio === "boolean" ? Boolean(body.audio) : undefined;
   const crf = body?.crf ? parseFloat(body.crf) : undefined;
   const preset = body?.preset;
+  const prefix = body?.prefix;
+  const suffix = body?.suffix;
 
   const [task] = await db
     .select()
@@ -111,7 +121,7 @@ export async function POST(
           name: `targets/${sourceImageInfo.name}${targetImageInfo.extension}`,
         });
 
-        archive.append(itemData.instruction, {
+        archive.append(applyAffixes(itemData.instruction, prefix, suffix), {
           name: `instructions/${sourceImageInfo.name}.txt`,
         });
       }
@@ -128,7 +138,7 @@ export async function POST(
         archive.file(imageInfo.absolutePath, {
           name: `images/${image}`,
         });
-        archive.append(itemData.instruction, {
+        archive.append(applyAffixes(itemData.instruction, prefix, suffix), {
           name: `instructions/${imageInfo.name}.txt`,
         });
       }
@@ -143,12 +153,10 @@ export async function POST(
         const videoInfo = getImagePathInfo(task.id, video);
 
         let filePath = videoInfo.absolutePath;
-        const shouldProcess = (fps && fps > 0) || audio === false;
-        if (shouldProcess) {
+        if (fps && fps > 0) {
           const converted = await convertVideo({
             inputPath: videoInfo.absolutePath,
             fps,
-            audio,
             crf,
             preset,
           });
@@ -157,7 +165,7 @@ export async function POST(
         archive.file(filePath, {
           name: `videos/${video}`,
         });
-        archive.append(itemData.instruction, {
+        archive.append(applyAffixes(itemData.instruction, prefix, suffix), {
           name: `instructions/${videoInfo.name}.txt`,
         });
       }
@@ -184,12 +192,10 @@ export async function POST(
         });
 
         let targetPath = targetInfo.absolutePath;
-        const shouldProcess = (fps && fps > 0) || audio === false;
-        if (shouldProcess) {
+        if (fps && fps > 0) {
           const converted = await convertVideo({
             inputPath: targetInfo.absolutePath,
             fps,
-            audio,
             crf,
             preset,
           });
@@ -198,7 +204,7 @@ export async function POST(
         archive.file(targetPath, {
           name: `targets/${sourceInfo.name}${targetInfo.extension}`,
         });
-        archive.append(itemData.instruction, {
+        archive.append(applyAffixes(itemData.instruction, prefix, suffix), {
           name: `instructions/${sourceInfo.name}.txt`,
         });
       }

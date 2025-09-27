@@ -26,13 +26,11 @@ async function executeFFmpeg(args: string[]) {
 export async function convertVideo({
   inputPath,
   fps,
-  audio,
   crf,
   preset,
 }: {
   inputPath: string;
   fps?: number;
-  audio?: boolean;
   crf?: number;
   preset?: string;
 }): Promise<string> {
@@ -43,12 +41,7 @@ export async function convertVideo({
   const ext = path.extname(inputPath).toLowerCase();
   const dir = path.dirname(inputPath);
 
-  const subDirParts: string[] = [];
-  if (fps && fps > 0) subDirParts.push(`fps_${fps}`);
-  if (audio === false) subDirParts.push("audio_off");
-  const subdir = subDirParts.join("__");
-
-  const outputDir = path.join(dir, subdir);
+  const outputDir = path.join(dir, `fps_${fps}`);
   await mkdir(outputDir, { recursive: true });
   const outputPath = path.join(outputDir, path.basename(inputPath));
 
@@ -59,7 +52,7 @@ export async function convertVideo({
 
   const isWebm = ext === ".webm";
 
-  const args: string[] = ["-y", "-i", inputPath];
+  const args: string[] = ["-y", "-i", inputPath, "-c:a", "copy"];
 
   if (fps && fps > 0) {
     args.push("-r", String(fps));
@@ -87,12 +80,6 @@ export async function convertVideo({
   } else {
     // No FPS change: stream copy video to avoid re-encode
     args.push("-c:v", "copy");
-  }
-
-  if (audio === false) {
-    args.push("-an");
-  } else {
-    args.push("-c:a", "copy");
   }
 
   args.push(outputPath);
@@ -154,14 +141,11 @@ export async function extractVideoSegment({
 /**
  * Delete videos and converted variants of a given filename, including
  * - fps_*
- * - fps_*__audio_off
- * - audio_off
  *
  * Example layout:
  *   baseDir/
  *     my_video.mp4 <-- will be removed if it exists
  *     fps_24/my_video.mp4  <-- will be removed if it exists
- *     fps_24__audio_off/my_video.mp4  <-- will be removed if it exists
  */
 export async function deleteVideo(baseDir: string, filename: string) {
   const filepath = path.join(baseDir, filename);
@@ -172,7 +156,7 @@ export async function deleteVideo(baseDir: string, filename: string) {
   const entries: string[] = await readdir(baseDir);
   await Promise.all(
     entries.map(async (entry) => {
-      if (!(entry.startsWith("fps_") || entry === "audio_off")) return;
+      if (!entry.startsWith("fps_")) return;
 
       const subdir = path.join(baseDir, entry);
       if (!(await stat(subdir)).isDirectory()) return;

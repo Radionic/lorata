@@ -14,7 +14,7 @@ Lorata has a built-in image/video editor that supports:
 - [x] Generate image/video caption with AI
 - [ ] Edit image with cloud AI models (e.g. Nano Banana)
 - [ ] Extract image frames from video
-- [x] Export videos with different FPS and audio on/off
+- [x] Export videos with different FPS
 
 https://github.com/user-attachments/assets/61568ad8-c7da-4591-91f0-28ec832d7c5b
 

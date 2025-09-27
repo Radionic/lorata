@@ -122,22 +122,24 @@ export const useExportTask = () => {
     mutationFn: async ({
       taskId,
       fps,
-      audio,
       crf,
       preset,
+      prefix,
+      suffix,
     }: {
       taskId: string;
       fps?: number;
-      audio?: boolean;
       crf?: number;
       preset?: string;
+      prefix?: string;
+      suffix?: string;
     }) => {
       const response = await fetch(`/api/tasks/${taskId}/export`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ fps, audio, crf, preset }),
+        body: JSON.stringify({ fps, crf, preset, prefix, suffix }),
       });
 
       if (!response.ok) {
