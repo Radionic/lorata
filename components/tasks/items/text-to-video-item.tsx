@@ -3,7 +3,7 @@ import { TextToVideoTaskItem } from "@/lib/types";
 import { Trash2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { MediaUploadArea } from "@/components/media-upload-area";
+import { MediaUploadArea } from "@/components/tasks/media-upload-area";
 import { getMediaUrl } from "@/lib/urls";
 import {
   useDeleteTaskItem,

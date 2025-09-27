@@ -2,7 +2,7 @@ import { Label } from "react-konva";
 import { Textarea } from "../ui/textarea";
 import { Sparkles } from "lucide-react";
 import { useState } from "react";
-import { GenerateInstructionDialog } from "./dialog/generate-instruction-dialog";
+import { GenerateInstructionDialog } from "./dialogs/generate-instruction-dialog";
 
 export function InstructionInput({
   taskId,

@@ -3,7 +3,7 @@
 import { Trash2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { MediaUploadArea } from "@/components/media-upload-area";
+import { MediaUploadArea } from "@/components/tasks/media-upload-area";
 import { ImageEditingTaskItem } from "@/lib/types";
 import { getMediaUrl } from "@/lib/urls";
 import {
@@ -12,12 +12,13 @@ import {
 } from "@/lib/queries/use-task-item";
 import { InstructionInput } from "../instruction-input";
 
-interface ImageEditItemProps {
+export function ImageEditItem({
+  item,
+  taskId,
+}: {
   item: ImageEditingTaskItem;
   taskId: string;
-}
-
-export function ImageEditItem({ item, taskId }: ImageEditItemProps) {
+}) {
   const sourceImageUrl = getMediaUrl({
     taskId,
     filename: item.data.sourceImage,

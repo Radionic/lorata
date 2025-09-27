@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Plus, FileImage } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useTasks } from "@/lib/queries/use-task";
-import { CreateTaskDialog } from "@/components/tasks/dialog/create-task-dialog";
+import { CreateTaskDialog } from "@/components/tasks/dialogs/create-task-dialog";
 import { LoadingErrorState } from "@/components/loading-error-state";
 import { useRouter } from "next/navigation";
 import { TaskCard } from "@/components/tasks/task-card";

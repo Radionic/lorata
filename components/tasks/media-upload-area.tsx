@@ -7,8 +7,8 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { useDeleteMedia, useUploadMedia } from "@/lib/queries/use-media";
 import { useMediaLoader } from "@/lib/hooks/use-media-loader";
-import { ImageEditor } from "./image-editor/image-editor";
-import { VideoEditor } from "./video-editor/video-editor";
+import { ImageEditor } from "../image-editor/image-editor";
+import { VideoEditor } from "../video-editor/video-editor";
 
 function formatDuration(seconds: number) {
   if (!seconds || !isFinite(seconds)) return "";

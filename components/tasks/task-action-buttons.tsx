@@ -4,8 +4,8 @@ import { Download, Plus, Sparkles } from "lucide-react";
 import { Button } from "../ui/button";
 import { useCreateTaskItem } from "@/lib/queries/use-task-item";
 import { Task } from "@/lib/types";
-import { GenerateInstructionDialog } from "@/components/tasks/dialog/generate-instruction-dialog";
-import { ExportTaskDialog } from "@/components/tasks/dialog/export-task-dialog";
+import { GenerateInstructionDialog } from "@/components/tasks/dialogs/generate-instruction-dialog";
+import { ExportTaskDialog } from "@/components/tasks/dialogs/export-task-dialog";
 
 export function TaskActionButtons({
   taskId,

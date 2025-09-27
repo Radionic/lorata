@@ -1,7 +1,7 @@
 "use client";
 
 import { useParams } from "next/navigation";
-import { ImageEditItem } from "@/components/tasks/image-editing/image-editing-item";
+import { ImageEditItem } from "@/components/tasks/items/image-editing-item";
 import { useTaskItems } from "@/lib/queries/use-task-item";
 import {
   ImageEditingTaskItem,
@@ -13,9 +13,9 @@ import {
 import { LoadingErrorState } from "@/components/loading-error-state";
 import { useRouter } from "next/navigation";
 import { match } from "ts-pattern";
-import { TextToImageItem } from "./text-to-image/text-to-image-item";
-import { TextToVideoItem } from "./text-to-video/text-to-video-item";
-import { ImageToVideoItem } from "./image-to-video/image-to-video-item";
+import { TextToImageItem } from "./items/text-to-image-item";
+import { TextToVideoItem } from "./items/text-to-video-item";
+import { ImageToVideoItem } from "./items/image-to-video-item";
 import { cn } from "@/lib/utils";
 
 export function TaskItemsPage({ task }: { task?: Task }) {

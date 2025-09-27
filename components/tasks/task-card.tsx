@@ -14,8 +14,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { RenameTaskDialog } from "@/components/tasks/dialog/rename-task-dialog";
-import { DeleteTaskDialog } from "@/components/tasks/dialog/delete-task-dialog";
+import { RenameTaskDialog } from "@/components/tasks/dialogs/rename-task-dialog";
+import { DeleteTaskDialog } from "@/components/tasks/dialogs/delete-task-dialog";
 import { Task } from "@/lib/types";
 import { useState } from "react";
 import { Edit, FileImage, MoreVertical, Trash2 } from "lucide-react";
