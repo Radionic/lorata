@@ -8,27 +8,31 @@ export const useAICaptioning = () => {
 
   return useMutation({
     mutationFn: async ({
+      taskId,
       prompt,
       itemId,
+      overwriteInstruction,
       videoOptions,
     }: {
       taskId: string;
       prompt: string;
-      itemId: string;
+      itemId?: string;
+      overwriteInstruction?: boolean;
       videoOptions?: VideoOptions;
     }) => {
       const response = await fetch("/api/ai", {
         method: "POST",
         body: JSON.stringify({
+          taskId,
           prompt,
           itemId,
+          overwriteInstruction,
           videoOptions,
         }),
       });
       if (!response.ok) {
         throw new Error("Failed to generate caption");
       }
-      return (await response.json()).text as string;
     },
     onSettled: (_, __, { taskId }) => {
       toast.success("Generated caption");

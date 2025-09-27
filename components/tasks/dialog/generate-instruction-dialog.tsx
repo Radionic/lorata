@@ -12,6 +12,7 @@ import { useAICaptioning } from "@/lib/queries/use-ai";
 import { Label } from "@/components/ui/label";
 import { VideoOptions } from "@/app/api/ai/route";
 import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
 
 export function GenerateInstructionDialog({
   taskId,
@@ -21,7 +22,7 @@ export function GenerateInstructionDialog({
   onOpenChange,
 }: {
   taskId: string;
-  itemId: string;
+  itemId?: string;
   hasVideo?: boolean;
   open: boolean;
   onOpenChange?: (open: boolean) => void;
@@ -38,6 +39,10 @@ export function GenerateInstructionDialog({
       interval: 1,
     }
   );
+  const [overwriteInstruction, setOverwriteInstruction] = useLocalStorage<boolean>(
+    "generate-instruction-overwrite",
+    false
+  );
 
   const { mutateAsync: generateInstruction, isLoading } = useAICaptioning();
 
@@ -46,6 +51,7 @@ export function GenerateInstructionDialog({
       taskId,
       prompt,
       itemId,
+      overwriteInstruction: !itemId ? overwriteInstruction : undefined,
       videoOptions: hasVideo ? videoOptions : undefined,
     });
 
@@ -68,6 +74,16 @@ export function GenerateInstructionDialog({
             className="w-full field-sizing-content resize-none min-h-0"
           />
         </div>
+
+        {!itemId && (
+          <div className="flex items-center gap-3">
+            <Switch
+              checked={overwriteInstruction}
+              onCheckedChange={setOverwriteInstruction}
+            />
+            <Label>Overwrite existing instructions</Label>
+          </div>
+        )}
 
         {hasVideo && (
           <div className="space-y-2">

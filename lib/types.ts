@@ -7,32 +7,40 @@ export interface Task extends DBTask {
 
 export interface TaskItem extends DBTaskItem {}
 
+export interface TextToImageTaskItemData {
+  instruction?: string;
+  image?: string;
+}
+
+export interface ImageEditingTaskItemData {
+  instruction?: string;
+  sourceImage?: string;
+  targetImage?: string;
+}
+
+export interface TextToVideoTaskItemData {
+  instruction?: string;
+  video?: string;
+}
+
+export interface ImageToVideoTaskItemData {
+  instruction?: string;
+  sourceImage?: string;
+  targetVideo?: string;
+}
+
 export interface TextToImageTaskItem extends TaskItem {
-  data: {
-    instruction?: string;
-    image?: string;
-  };
+  data: TextToImageTaskItemData;
 }
 
 export interface ImageEditingTaskItem extends TaskItem {
-  data: {
-    instruction?: string;
-    sourceImage?: string;
-    targetImage?: string;
-  };
+  data: ImageEditingTaskItemData;
 }
 
 export interface TextToVideoTaskItem extends TaskItem {
-  data: {
-    instruction?: string;
-    video?: string;
-  };
+  data: TextToVideoTaskItemData;
 }
 
 export interface ImageToVideoTaskItem extends TaskItem {
-  data: {
-    instruction?: string;
-    sourceImage?: string;
-    targetVideo?: string;
-  };
+  data: ImageToVideoTaskItemData;
 }

@@ -1,6 +1,12 @@
 import { index, sqliteTable, text } from "drizzle-orm/sqlite-core";
 import { tasksTable } from "./task";
 import { relations } from "drizzle-orm";
+import {
+  TextToImageTaskItemData,
+  TextToVideoTaskItemData,
+  ImageToVideoTaskItemData,
+  ImageEditingTaskItemData,
+} from "@/lib/types";
 
 export const taskItemsTable = sqliteTable(
   "task_items",
@@ -9,7 +15,14 @@ export const taskItemsTable = sqliteTable(
     taskId: text("task_id")
       .notNull()
       .references(() => tasksTable.id, { onDelete: "cascade" }),
-    data: text("data", { mode: "json" }).notNull(),
+    data: text("data", { mode: "json" })
+      .$type<
+        | TextToImageTaskItemData
+        | TextToVideoTaskItemData
+        | ImageToVideoTaskItemData
+        | ImageEditingTaskItemData
+      >()
+      .notNull(),
     createdAt: text("created_at")
       .notNull()
       .$defaultFn(() => new Date().toISOString()),

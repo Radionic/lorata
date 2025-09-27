@@ -1,6 +1,7 @@
 import { aiProvider } from "@/lib/ai";
 import { db } from "@/lib/db";
 import { taskItemsTable } from "@/lib/db/schema";
+import type { TaskItem } from "@/lib/db/schema";
 import { generateText } from "ai";
 import { eq } from "drizzle-orm";
 import { extractFrames } from "@/lib/video";
@@ -9,10 +10,10 @@ import { existsSync } from "fs";
 import { readFile } from "fs/promises";
 import { match } from "ts-pattern";
 import {
-  ImageEditingTaskItem,
-  ImageToVideoTaskItem,
-  TextToImageTaskItem,
-  TextToVideoTaskItem,
+  ImageEditingTaskItemData,
+  ImageToVideoTaskItemData,
+  TextToImageTaskItemData,
+  TextToVideoTaskItemData,
 } from "@/lib/types";
 import { NextResponse } from "next/server";
 
@@ -25,20 +26,40 @@ export async function POST(req: Request) {
   const {
     prompt,
     itemId,
+    taskId,
+    overwriteInstruction,
     videoOptions,
-  }: { prompt: string; itemId: string; videoOptions?: VideoOptions } =
-    await req.json();
-  if (!itemId) {
-    throw new Error("Missing itemId");
+  }: {
+    prompt: string;
+    itemId?: string;
+    taskId?: string;
+    overwriteInstruction?: boolean;
+    videoOptions?: VideoOptions;
+  } = await req.json();
+
+  if (!itemId && !taskId) {
+    throw new Error("itemId or taskId is required");
   }
 
-  const item = await db.query.taskItemsTable.findFirst({
-    with: { task: true },
-    where: eq(taskItemsTable.id, itemId),
-  });
-  if (!item) {
-    throw new Error("Item not found");
+  // Fetch items to process
+  const items = itemId
+    ? [
+        await db.query.taskItemsTable.findFirst({
+          with: { task: true },
+          where: eq(taskItemsTable.id, itemId),
+        }),
+      ]
+    : await db.query.taskItemsTable.findMany({
+        with: { task: true },
+        where: eq(taskItemsTable.taskId, taskId!),
+      });
+
+  if (!items[0]) {
+    throw new Error("No items found");
   }
+
+  const _taskId = items[0].taskId;
+  const taskType = items[0].task.type;
 
   const getBase64Image = async (absPath: string) => {
     const ext = path.extname(absPath).toLowerCase();
@@ -49,7 +70,7 @@ export async function POST(req: Request) {
 
   const resolveMedia = async (filename?: string, isVideo: boolean = false) => {
     const mediaPath = filename
-      ? path.resolve("data", item.taskId, filename)
+      ? path.resolve("data", _taskId, filename)
       : undefined;
     if (!mediaPath || !existsSync(mediaPath)) return undefined;
 
@@ -67,62 +88,72 @@ export async function POST(req: Request) {
     return await Promise.all(imagePaths.map(getBase64Image));
   };
 
-  const taskType = item.task.type;
-  const base64Images: string[] = await match(taskType)
-    .with("image-editing", async () => {
-      const { sourceImage, targetImage } =
-        item.data as ImageEditingTaskItem["data"];
-      const s = await resolveMedia(sourceImage);
-      const t = await resolveMedia(targetImage);
-      if (s && t) {
-        return [...s, ...t];
-      }
-      return [];
-    })
-    .with("text-to-image", async () => {
-      const { image } = item.data as TextToImageTaskItem["data"];
-      return (await resolveMedia(image)) || [];
-    })
-    .with("text-to-video", async () => {
-      const { video } = item.data as TextToVideoTaskItem["data"];
-      return (await resolveMedia(video, true)) || [];
-    })
-    .with("image-to-video", async () => {
-      const { sourceImage, targetVideo } =
-        item.data as ImageToVideoTaskItem["data"];
-      const s = await resolveMedia(sourceImage);
-      const v = await resolveMedia(targetVideo, true);
-      if (s && v) {
-        return [...s, ...v];
-      }
-      return [];
-    })
-    .exhaustive();
+  const getBase64ImagesForItem = async (it: TaskItem) => {
+    return await match(taskType)
+      .with("image-editing", async () => {
+        const { sourceImage, targetImage } =
+          it.data as ImageEditingTaskItemData;
+        const s = await resolveMedia(sourceImage);
+        const t = await resolveMedia(targetImage);
+        if (s && t) return [...s, ...t];
+        return [];
+      })
+      .with("text-to-image", async () => {
+        const { image } = it.data as TextToImageTaskItemData;
+        return (await resolveMedia(image)) || [];
+      })
+      .with("text-to-video", async () => {
+        const { video } = it.data as TextToVideoTaskItemData;
+        return (await resolveMedia(video, true)) || [];
+      })
+      .with("image-to-video", async () => {
+        const { sourceImage, targetVideo } =
+          it.data as ImageToVideoTaskItemData;
+        const s = await resolveMedia(sourceImage);
+        const v = await resolveMedia(targetVideo, true);
+        if (s && v) return [...s, ...v];
+        return [];
+      })
+      .exhaustive();
+  };
 
-  const imageParts = base64Images.map((image) => ({
-    type: "image" as const,
-    image,
-  }));
+  // TODO: Concurrent processing?
+  for (const item of items) {
+    if (!item) continue;
 
-  const { text } = await generateText({
-    model: aiProvider(process.env.OPENAI_API_MODEL!),
-    messages: [
-      {
-        role: "user",
-        content: [{ type: "text", text: prompt }, ...imageParts],
-      },
-    ],
-  });
+    const hasInstruction = !!item?.data?.instruction;
+    // For dataset-level generation, skip items with existing instruction unless overwriting.
+    // For single-item generation, always overwrite regardless of overwriteInstruction.
+    if (!itemId && !overwriteInstruction && hasInstruction) {
+      continue;
+    }
 
-  await db
-    .update(taskItemsTable)
-    .set({
-      data: {
-        ...(item.data || {}),
-        instruction: text,
-      },
-    })
-    .where(eq(taskItemsTable.id, itemId));
+    const base64Images: string[] = await getBase64ImagesForItem(item);
+    const imageParts = base64Images.map((image) => ({
+      type: "image" as const,
+      image,
+    }));
+
+    const { text } = await generateText({
+      model: aiProvider(process.env.OPENAI_API_MODEL!),
+      messages: [
+        {
+          role: "user",
+          content: [{ type: "text", text: prompt }, ...imageParts],
+        },
+      ],
+    });
+
+    await db
+      .update(taskItemsTable)
+      .set({
+        data: {
+          ...item.data,
+          instruction: text,
+        },
+      })
+      .where(eq(taskItemsTable.id, item.id));
+  }
 
   return NextResponse.json({});
 }

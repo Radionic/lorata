@@ -42,7 +42,7 @@ export function TextToImageItem({
         ...item,
         data: {
           ...item.data,
-          image: null,
+          image: undefined,
         },
       },
     });

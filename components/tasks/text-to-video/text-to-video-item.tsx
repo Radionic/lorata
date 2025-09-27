@@ -42,7 +42,7 @@ export function TextToVideoItem({
         ...item,
         data: {
           ...item.data,
-          video: null,
+          video: undefined,
         },
       },
     });
