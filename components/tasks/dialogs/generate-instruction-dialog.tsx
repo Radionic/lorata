@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Prompt, PromptEditor } from "../prompt-editor";
 import { toast } from "sonner";
+import { Help } from "@/components/help";
 
 export function GenerateInstructionDialog({
   taskId,
@@ -140,12 +141,13 @@ export function GenerateInstructionDialog({
         )}
 
         {!itemId && (
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             <Switch
               checked={overwriteInstruction}
               onCheckedChange={setOverwriteInstruction}
             />
             <Label>Overwrite existing instructions</Label>
+            <Help>This doesn't affect locked items</Help>
           </div>
         )}
 

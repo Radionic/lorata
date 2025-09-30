@@ -1,4 +1,4 @@
-import { index, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { index, integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
 import { tasksTable } from "./task";
 import { relations } from "drizzle-orm";
 import {
@@ -23,6 +23,7 @@ export const taskItemsTable = sqliteTable(
         | ImageEditingTaskItemData
       >()
       .notNull(),
+    locked: integer("locked", { mode: "boolean" }).notNull().default(false),
     createdAt: text("created_at")
       .notNull()
       .$defaultFn(() => new Date().toISOString()),

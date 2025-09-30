@@ -121,10 +121,11 @@ export async function POST(req: Request) {
   for (const item of items) {
     if (!item) continue;
 
+    const isLocked = item.locked;
     const hasInstruction = !!item?.data?.instruction;
     // For dataset-level generation, skip items with existing instruction unless overwriting.
     // For single-item generation, always overwrite regardless of overwriteInstruction.
-    if (!itemId && !overwriteInstruction && hasInstruction) {
+    if (isLocked || (hasInstruction && !overwriteInstruction && !itemId)) {
       continue;
     }
 

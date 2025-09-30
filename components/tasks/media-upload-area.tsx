@@ -115,6 +115,7 @@ interface MediaUploadAreaProps {
   media?: string;
   label: string;
   type: "image" | "video";
+  disabled?: boolean;
   onMediaUploaded?: ({
     file,
     overwrite,
@@ -130,6 +131,7 @@ export function MediaUploadArea({
   media,
   label,
   type,
+  disabled,
   onMediaUploaded,
   onMediaRemoved,
 }: MediaUploadAreaProps) {
@@ -177,6 +179,8 @@ export function MediaUploadArea({
 
   const handleDrop = async (e: React.DragEvent) => {
     e.preventDefault();
+    if (disabled) return;
+
     const file = Array.from(e.dataTransfer.files).find((file) =>
       type
         ? file.type.startsWith(type + "/")
@@ -193,7 +197,11 @@ export function MediaUploadArea({
     <div className="flex-1">
       <Label className="text-sm font-medium mb-2 block">{label}</Label>
       <div
-        className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-3 text-center hover:border-muted-foreground/50 transition-colors cursor-pointer relative"
+        className={`border-2 border-dashed border-muted-foreground/25 rounded-lg p-3 text-center transition-colors relative ${
+          disabled
+            ? "opacity-50 pointer-events-none"
+            : "hover:border-muted-foreground/50 cursor-pointer"
+        }`}
         onDrop={handleDrop}
         onDragOver={(e) => e.preventDefault()}
         onClick={media ? undefined : () => fileInputRef.current?.click()}

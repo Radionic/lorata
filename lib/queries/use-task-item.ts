@@ -99,3 +99,40 @@ export const useDeleteTaskItem = () => {
     },
   });
 };
+
+export const useSetItemLocked = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      taskId,
+      itemId,
+      locked,
+    }: {
+      taskId: string;
+      itemId: string;
+      locked: boolean;
+    }) => {
+      const response = await fetch(
+        `/api/tasks/${taskId}/items/${itemId}/lock`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ locked }),
+        }
+      );
+
+      if (!response.ok) {
+        const error = await response.json();
+        toast.error(error.error || "Failed to update lock status");
+        return false;
+      }
+      return true;
+    },
+    onSettled: (_, __, { taskId }) => {
+      queryClient.invalidateQueries(["taskItems", taskId]);
+    },
+  });
+};

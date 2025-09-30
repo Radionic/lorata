@@ -3,6 +3,7 @@ import { Textarea } from "../ui/textarea";
 import { Sparkles } from "lucide-react";
 import { useState } from "react";
 import { GenerateInstructionDialog } from "./dialogs/generate-instruction-dialog";
+import { cn } from "@/lib/utils";
 
 export function InstructionInput({
   taskId,
@@ -12,6 +13,7 @@ export function InstructionInput({
   description,
   defaultValue,
   disableAI,
+  disabled,
   onSettle,
 }: {
   taskId: string;
@@ -21,6 +23,7 @@ export function InstructionInput({
   description: string;
   defaultValue?: string;
   disableAI?: boolean;
+  disabled?: boolean;
   onSettle?: (value: string) => void;
 }) {
   const [aiDialogOpen, setAiDialogOpen] = useState(false);
@@ -32,7 +35,10 @@ export function InstructionInput({
         <Label className="text-sm font-medium">{title}</Label>
         {!disableAI && (
           <Sparkles
-            className="w-4 h-4 cursor-pointer"
+            className={cn(
+              "w-4 h-4",
+              disabled ? "opacity-50 pointer-events-none" : "cursor-pointer"
+            )}
             onClick={() => setAiDialogOpen(true)}
           />
         )}
@@ -43,6 +49,7 @@ export function InstructionInput({
         value={instruction}
         onChange={(e) => setInstruction(e.target.value)}
         onBlur={(e) => onSettle?.(e.target.value)}
+        disabled={disabled}
         className="w-full field-sizing-content resize-none min-h-0"
       />
 
