@@ -46,7 +46,7 @@ export async function POST(
       taskId,
       data: {
         sourceImages: [],
-        targetImage: undefined,
+        targetImage: null,
         instruction: "",
       },
       locked: false,
@@ -57,7 +57,7 @@ export async function POST(
       id: itemId,
       taskId,
       data: {
-        image: undefined,
+        image: null,
         instruction: "",
       },
       locked: false,
@@ -68,7 +68,7 @@ export async function POST(
       id: itemId,
       taskId,
       data: {
-        video: undefined,
+        video: null,
         instruction: "",
       },
       locked: false,
@@ -79,8 +79,8 @@ export async function POST(
       id: itemId,
       taskId,
       data: {
-        sourceImage: undefined,
-        targetVideo: undefined,
+        sourceImage: null,
+        targetVideo: null,
         instruction: "",
       },
       locked: false,

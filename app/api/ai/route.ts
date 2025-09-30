@@ -68,7 +68,10 @@ export async function POST(req: Request) {
     return `data:${mime};base64,${buf.toString("base64")}`;
   };
 
-  const resolveMedia = async (filename?: string, isVideo: boolean = false) => {
+  const resolveMedia = async (
+    filename?: string | null,
+    isVideo: boolean = false
+  ) => {
     const mediaPath = filename
       ? path.resolve("data", _taskId, filename)
       : undefined;

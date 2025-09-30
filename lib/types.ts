@@ -8,25 +8,25 @@ export interface Task extends DBTask {
 export interface TaskItem extends DBTaskItem {}
 
 export interface TextToImageTaskItemData {
-  instruction?: string;
-  image?: string;
+  instruction: string | null;
+  image: string | null;
 }
 
 export interface ImageEditingTaskItemData {
-  instruction?: string;
-  sourceImages?: string[];
-  targetImage?: string;
+  instruction: string | null;
+  sourceImages: string[] | null;
+  targetImage: string | null;
 }
 
 export interface TextToVideoTaskItemData {
-  instruction?: string;
-  video?: string;
+  instruction: string | null;
+  video: string | null;
 }
 
 export interface ImageToVideoTaskItemData {
-  instruction?: string;
-  sourceImage?: string;
-  targetVideo?: string;
+  instruction: string | null;
+  sourceImage: string | null;
+  targetVideo: string | null;
 }
 
 export interface TextToImageTaskItem extends TaskItem {

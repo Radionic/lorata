@@ -83,7 +83,7 @@ export function ImageEditItem({
         ...item,
         data: {
           ...item.data,
-          targetImage: undefined,
+          targetImage: null,
         },
       },
     });
@@ -225,7 +225,7 @@ export function ImageEditItem({
           itemId={item.id}
           title="Editing Instruction"
           description="Describe the editing..."
-          defaultValue={item.data.instruction}
+          defaultValue={item.data.instruction || undefined}
           disabled={item.locked}
           onSettle={handleInstructionSettled}
         />

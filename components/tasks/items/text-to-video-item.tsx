@@ -45,7 +45,7 @@ export function TextToVideoItem({
         ...item,
         data: {
           ...item.data,
-          video: undefined,
+          video: null,
         },
       },
     });
@@ -132,7 +132,7 @@ export function TextToVideoItem({
             itemId={item.id}
             title="Description"
             description="Describe the video..."
-            defaultValue={item.data.instruction}
+            defaultValue={item.data.instruction || undefined}
             disabled={item.locked}
             onSettle={handleInstructionSettled}
             hasVideo

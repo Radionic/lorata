@@ -45,7 +45,7 @@ export function TextToImageItem({
         ...item,
         data: {
           ...item.data,
-          image: undefined,
+          image: null,
         },
       },
     });
@@ -132,7 +132,7 @@ export function TextToImageItem({
             itemId={item.id}
             title="Description"
             description="Describe the image..."
-            defaultValue={item.data.instruction}
+            defaultValue={item.data.instruction || undefined}
             disabled={item.locked}
             onSettle={handleInstructionSettled}
           />

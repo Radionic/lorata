@@ -3,7 +3,7 @@ export const getMediaUrl = ({
   filename,
 }: {
   taskId?: string;
-  filename?: string;
+  filename?: string | null;
 }) => {
   if (!taskId || !filename) return undefined;
   return `${window.location.origin}/api/data/${taskId}/${filename}`;
