@@ -86,12 +86,16 @@ export async function DELETE(
     .limit(1);
 
   if (taskType === "image-editing") {
-    const { sourceImage, targetImage } = (deletedItem as ImageEditingTaskItem)
+    const { sourceImages, targetImage } = (deletedItem as ImageEditingTaskItem)
       .data;
-    if (typeof sourceImage === "string") {
-      const sourceImagePath = path.resolve("data", taskId, sourceImage);
-      unlinkSync(sourceImagePath);
+
+    for (const sourceImage of sourceImages || []) {
+      if (typeof sourceImage === "string") {
+        const sourceImagePath = path.resolve("data", taskId, sourceImage);
+        unlinkSync(sourceImagePath);
+      }
     }
+
     if (typeof targetImage === "string") {
       const targetImagePath = path.resolve("data", taskId, targetImage);
       unlinkSync(targetImagePath);

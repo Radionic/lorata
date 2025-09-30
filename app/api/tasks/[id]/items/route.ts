@@ -45,10 +45,11 @@ export async function POST(
       id: itemId,
       taskId,
       data: {
-        sourceImage: undefined,
+        sourceImages: [],
         targetImage: undefined,
         instruction: "",
       },
+      locked: false,
       createdAt: now,
       updatedAt: now,
     }))
@@ -59,6 +60,7 @@ export async function POST(
         image: undefined,
         instruction: "",
       },
+      locked: false,
       createdAt: now,
       updatedAt: now,
     }))
@@ -69,6 +71,7 @@ export async function POST(
         video: undefined,
         instruction: "",
       },
+      locked: false,
       createdAt: now,
       updatedAt: now,
     }))
@@ -80,6 +83,7 @@ export async function POST(
         targetVideo: undefined,
         instruction: "",
       },
+      locked: false,
       createdAt: now,
       updatedAt: now,
     }))

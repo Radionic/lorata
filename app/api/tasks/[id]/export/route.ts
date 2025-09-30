@@ -102,27 +102,37 @@ export async function POST(
         const itemData = item.data;
         if (
           !itemData.instruction ||
-          !itemData.sourceImage ||
+          !itemData.sourceImages ||
+          itemData.sourceImages.length === 0 ||
           !itemData.targetImage
         )
           continue;
 
-        const sourceImage = itemData.sourceImage as string;
-        const sourceImageInfo = getImagePathInfo(task.id, sourceImage);
+        // Use the first source image as the base name
+        const firstSourceImage = itemData.sourceImages[0] as string;
+        const firstSourceImageInfo = getImagePathInfo(
+          task.id,
+          firstSourceImage
+        );
 
-        archive.file(sourceImageInfo.absolutePath, {
-          name: `sources/${sourceImage}`,
-        });
+        // Add all source images
+        for (let i = 0; i < itemData.sourceImages.length; i++) {
+          const sourceImage = itemData.sourceImages[i] as string;
+          const sourceImageInfo = getImagePathInfo(task.id, sourceImage);
+          archive.file(sourceImageInfo.absolutePath, {
+            name: `sources_${i}/${firstSourceImageInfo.name}${sourceImageInfo.extension}`,
+          });
+        }
 
         const targetImage = itemData.targetImage as string;
         const targetImageInfo = getImagePathInfo(task.id, targetImage);
 
         archive.file(targetImageInfo.absolutePath, {
-          name: `targets/${sourceImageInfo.name}${targetImageInfo.extension}`,
+          name: `targets/${firstSourceImageInfo.name}${targetImageInfo.extension}`,
         });
 
         archive.append(applyAffixes(itemData.instruction, prefix, suffix), {
-          name: `instructions/${sourceImageInfo.name}.txt`,
+          name: `instructions/${firstSourceImageInfo.name}.txt`,
         });
       }
     })

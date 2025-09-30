@@ -91,12 +91,18 @@ export async function POST(req: Request) {
   const getBase64ImagesForItem = async (it: TaskItem) => {
     return await match(taskType)
       .with("image-editing", async () => {
-        const { sourceImage, targetImage } =
+        const { sourceImages, targetImage } =
           it.data as ImageEditingTaskItemData;
-        const s = await resolveMedia(sourceImage);
-        const t = await resolveMedia(targetImage);
-        if (s && t) return [...s, ...t];
-        return [];
+        if (!sourceImages || !targetImage) return [];
+
+        const images = (
+          await Promise.all(
+            [...sourceImages, targetImage].map((i) => resolveMedia(i))
+          )
+        )
+          .flat()
+          .filter((s) => s !== undefined);
+        return images;
       })
       .with("text-to-image", async () => {
         const { image } = it.data as TextToImageTaskItemData;

@@ -115,6 +115,7 @@ interface MediaUploadAreaProps {
   media?: string;
   label: string;
   type: "image" | "video";
+  allowRemoveItem?: boolean;
   disabled?: boolean;
   onMediaUploaded?: ({
     file,
@@ -124,6 +125,7 @@ interface MediaUploadAreaProps {
     overwrite?: boolean;
   }) => void;
   onMediaRemoved?: () => void;
+  onItemRemoved?: () => void;
 }
 
 export function MediaUploadArea({
@@ -131,9 +133,11 @@ export function MediaUploadArea({
   media,
   label,
   type,
+  allowRemoveItem,
   disabled,
   onMediaUploaded,
   onMediaRemoved,
+  onItemRemoved,
 }: MediaUploadAreaProps) {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const { imageEl, videoEl, mediaName, releaseMedia } = useMediaLoader(
@@ -195,7 +199,24 @@ export function MediaUploadArea({
 
   return (
     <div className="flex-1">
-      <Label className="text-sm font-medium mb-2 block">{label}</Label>
+      <div className="flex items-center justify-between mb-1">
+        <Label className="text-sm font-medium block">{label}</Label>
+        {allowRemoveItem && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-6 w-6 text-muted-foreground hover:bg-background hover:text-destructive"
+            onClick={() => {
+              _removeMedia();
+              onItemRemoved?.();
+            }}
+            disabled={disabled}
+          >
+            <X className="h-3 w-3" />
+          </Button>
+        )}
+      </div>
+
       <div
         className={`border-2 border-dashed border-muted-foreground/25 rounded-lg p-3 text-center transition-colors relative ${
           disabled

@@ -14,7 +14,7 @@ export interface TextToImageTaskItemData {
 
 export interface ImageEditingTaskItemData {
   instruction?: string;
-  sourceImage?: string;
+  sourceImages?: string[];
   targetImage?: string;
 }
 

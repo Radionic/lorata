@@ -1,11 +1,12 @@
 "use client";
 
-import { Trash2, Lock, Unlock } from "lucide-react";
+import { Trash2, Lock, Unlock, Plus } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { MediaUploadArea } from "@/components/tasks/media-upload-area";
 import { ImageEditingTaskItem } from "@/lib/types";
 import { getMediaUrl } from "@/lib/urls";
+import { useState } from "react";
 import {
   useDeleteTaskItem,
   useUpdateTaskItem,
@@ -13,6 +14,7 @@ import {
 } from "@/lib/queries/use-task-item";
 import { InstructionInput } from "../instruction-input";
 import { cn } from "@/lib/utils";
+import { Label } from "@/components/ui/label";
 
 export function ImageEditItem({
   item,
@@ -21,10 +23,10 @@ export function ImageEditItem({
   item: ImageEditingTaskItem;
   taskId: string;
 }) {
-  const sourceImageUrl = getMediaUrl({
-    taskId,
-    filename: item.data.sourceImage,
-  });
+  const [extraSlots, setExtraSlots] = useState(
+    item.data.sourceImages?.length ? 0 : 1
+  );
+  const sourceImages = item.data.sourceImages || [];
   const targetImageUrl = getMediaUrl({
     taskId,
     filename: item.data.targetImage,
@@ -34,38 +36,65 @@ export function ImageEditItem({
   const { mutate: deleteTaskItem } = useDeleteTaskItem();
   const { mutate: setItemLocked } = useSetItemLocked();
 
-  const handleImageUploaded = async ({
-    type,
-    file,
-  }: {
-    type: "source" | "target";
-    file: File;
-  }) => {
-    const image = type === "source" ? "sourceImage" : "targetImage";
+  const handleSourceImageUploaded = (file: File) => {
+    setExtraSlots((s) => Math.max(0, s - 1));
     updateTaskItem({
       taskId,
       item: {
         ...item,
         data: {
           ...item.data,
-          [image]: file.name,
+          sourceImages: [...sourceImages, file.name],
         },
       },
     });
   };
 
-  const handleImageRemoved = ({ type }: { type: "source" | "target" }) => {
-    const image = type === "source" ? "sourceImage" : "targetImage";
+  const handleSourceImageRemoved = (imageName: string) => {
     updateTaskItem({
       taskId,
       item: {
         ...item,
         data: {
           ...item.data,
-          [image]: null,
+          sourceImages: sourceImages.filter((image) => image !== imageName),
         },
       },
     });
+  };
+
+  const handleTargetImageUploaded = (file: File) => {
+    updateTaskItem({
+      taskId,
+      item: {
+        ...item,
+        data: {
+          ...item.data,
+          targetImage: file.name,
+        },
+      },
+    });
+  };
+
+  const handleTargetImageRemoved = () => {
+    updateTaskItem({
+      taskId,
+      item: {
+        ...item,
+        data: {
+          ...item.data,
+          targetImage: undefined,
+        },
+      },
+    });
+  };
+
+  const addSourceImageSlot = () => {
+    setExtraSlots((s) => s + 1);
+  };
+
+  const handleEmptySlotRemoved = () => {
+    setExtraSlots((s) => Math.max(0, s - 1));
   };
 
   const handleInstructionSettled = (instruction: string) => {
@@ -96,6 +125,8 @@ export function ImageEditItem({
     });
   };
 
+  const allowRemoveItem = sourceImages.length + extraSlots > 1;
+
   return (
     <Card
       className={cn(
@@ -103,7 +134,18 @@ export function ImageEditItem({
         item.locked && "border-green-500/50 bg-green-500/5"
       )}
     >
-      <div className="absolute top-2 right-2 flex gap-1">
+      <div className="absolute top-2 right-2 flex gap-1 items-center">
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-7 px-2"
+          onClick={addSourceImageSlot}
+          disabled={item.locked}
+        >
+          <Plus className="h-3 w-3 mr-1" />
+          Add Source Image
+        </Button>
+
         <Button
           variant="ghost"
           size="icon"
@@ -131,44 +173,62 @@ export function ImageEditItem({
           <Trash2 className="h-4 w-4" />
         </Button>
       </div>
-      <CardContent className="px-0 pb-0 pt-0">
-        <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <MediaUploadArea
-              taskId={taskId}
-              media={sourceImageUrl}
-              label="Source Image"
-              type="image"
-              disabled={item.locked}
-              onMediaUploaded={({ file }) =>
-                handleImageUploaded({ file, type: "source" })
-              }
-              onMediaRemoved={() => handleImageRemoved({ type: "source" })}
-            />
-            <MediaUploadArea
-              taskId={taskId}
-              media={targetImageUrl}
-              label="Target Image"
-              type="image"
-              disabled={item.locked}
-              onMediaUploaded={({ file }) =>
-                handleImageUploaded({ file, type: "target" })
-              }
-              onMediaRemoved={() => handleImageRemoved({ type: "target" })}
-            />
+      <CardContent className="px-0 pb-0 pt-0 space-y-4">
+        <div className="space-y-2">
+          <Label>Source Images</Label>
+          <div className="grid grid-cols-2 gap-4 mt-4">
+            {sourceImages.map((sourceImage, index) => (
+              <MediaUploadArea
+                taskId={taskId}
+                media={getMediaUrl({ taskId, filename: sourceImage })}
+                label={`Source Image ${index + 1}`}
+                type="image"
+                disabled={item.locked}
+                onMediaUploaded={({ file }) => handleSourceImageUploaded(file)}
+                onMediaRemoved={() => handleSourceImageRemoved(sourceImage)}
+                allowRemoveItem={allowRemoveItem}
+              />
+            ))}
+            {/* Extra empty slots added by the "+ Add Image" button */}
+            {extraSlots > 0 &&
+              Array.from({ length: extraSlots }).map((_, idx) => (
+                <MediaUploadArea
+                  key={`extra-${idx}`}
+                  taskId={taskId}
+                  media={undefined}
+                  label={`Source Image ${sourceImages.length + idx + 1}`}
+                  type="image"
+                  disabled={item.locked}
+                  onMediaUploaded={({ file }) =>
+                    handleSourceImageUploaded(file)
+                  }
+                  onItemRemoved={handleEmptySlotRemoved}
+                  allowRemoveItem={allowRemoveItem}
+                />
+              ))}
           </div>
-
-          <InstructionInput
-            key={item.data.instruction}
-            taskId={taskId}
-            itemId={item.id}
-            title="Editing Instruction"
-            description="Describe the editing..."
-            defaultValue={item.data.instruction}
-            disabled={item.locked}
-            onSettle={handleInstructionSettled}
-          />
         </div>
+
+        <MediaUploadArea
+          taskId={taskId}
+          media={targetImageUrl}
+          label="Target Image"
+          type="image"
+          disabled={item.locked}
+          onMediaUploaded={({ file }) => handleTargetImageUploaded(file)}
+          onMediaRemoved={handleTargetImageRemoved}
+        />
+
+        <InstructionInput
+          key={item.data.instruction}
+          taskId={taskId}
+          itemId={item.id}
+          title="Editing Instruction"
+          description="Describe the editing..."
+          defaultValue={item.data.instruction}
+          disabled={item.locked}
+          onSettle={handleInstructionSettled}
+        />
       </CardContent>
     </Card>
   );
