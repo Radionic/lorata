@@ -36,7 +36,17 @@ export function ImageEditItem({
   const { mutate: deleteTaskItem } = useDeleteTaskItem();
   const { mutate: setItemLocked } = useSetItemLocked();
 
-  const handleSourceImageUploaded = (file: File) => {
+  const handleSourceImageUploaded = ({
+    file,
+    overwrite,
+  }: {
+    file: File;
+    overwrite?: boolean;
+  }) => {
+    // If this upload is the result of an in-place edit (overwrite),
+    // do not append a new source image entry.
+    if (overwrite) return;
+
     setExtraSlots((s) => Math.max(0, s - 1));
     updateTaskItem({
       taskId,
@@ -184,7 +194,7 @@ export function ImageEditItem({
                 label={`Source Image ${index + 1}`}
                 type="image"
                 disabled={item.locked}
-                onMediaUploaded={({ file }) => handleSourceImageUploaded(file)}
+                onMediaUploaded={handleSourceImageUploaded}
                 onMediaRemoved={() => handleSourceImageRemoved(sourceImage)}
                 allowRemoveItem={allowRemoveItem}
               />
@@ -199,9 +209,7 @@ export function ImageEditItem({
                   label={`Source Image ${sourceImages.length + idx + 1}`}
                   type="image"
                   disabled={item.locked}
-                  onMediaUploaded={({ file }) =>
-                    handleSourceImageUploaded(file)
-                  }
+                  onMediaUploaded={handleSourceImageUploaded}
                   onItemRemoved={handleEmptySlotRemoved}
                   allowRemoveItem={allowRemoveItem}
                 />
