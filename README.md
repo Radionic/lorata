@@ -1,10 +1,10 @@
 Lorata is a data labeling tool for the GenAI models. We plan to support the following labeling tasks:
 
 - [x] Text-to-Image
-- [x] Image-to-Image (Image Editing)
+- [x] Image-to-Image (Image editing, support multiple source images)
 - [x] Text-to-Video
 - [x] Image-to-Video
-- [ ] Video-to-Video (Video Editing)
+- [ ] Video-to-Video (Video editing)
 
 Lorata has a built-in image/video editor that supports:
 
@@ -36,13 +36,17 @@ task-name.zip
 ```
 
 ```
-# Image-to-Image task
+# Image-to-Image task (multiple source images)
 task-name.zip
 ├── instructions
 │   ├── item-1.txt
 │   ├── item-2.txt
 │   └── ...
-├── sources
+├── sources_1
+│   ├── item-1.jpg
+│   ├── item-2.png
+│   └── ...
+├── sources_2
 │   ├── item-1.jpg
 │   ├── item-2.png
 │   └── ...
@@ -93,10 +97,17 @@ pnpm db:push
 pnpm dev
 ```
 
-(Optional) If you need image/video captioning model, configure `.env` with your OpenAI-compatible API key and model:
+(Optional) If you need image/video captioning model, configure `.env` with your OpenAI-compatible API endpoint:
 
 ```bash
-OPENAI_API_MODEL=
+OPENAI_API_MODEL= # Make sure to use a vision language model
 OPENAI_API_KEY=
 OPENAI_API_BASE_URL=
 ```
+
+## Training Frameworks
+
+- [ai-toolkit](https://github.com/ostris/ai-toolkit) by @ostris
+- [sd-scripts](https://github.com/kohya-ss/sd-scripts) by @kohya-ss
+- [musubi-tuner](https://github.com/kohya-ss/musubi-tuner) by @kohya-ss
+- [diffusion-pipe](https://github.com/tdrussell/diffusion-pipe) by @tdrussell
