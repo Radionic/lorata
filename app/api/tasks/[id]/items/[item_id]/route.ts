@@ -6,6 +6,7 @@ import {
   ImageEditingTaskItem,
   TextToVideoTaskItem,
   ImageToVideoTaskItem,
+  TextToImageTaskItem,
 } from "@/lib/types";
 import path from "path";
 import { unlinkSync } from "fs";
@@ -85,35 +86,41 @@ export async function DELETE(
     .where(eq(tasksTable.id, taskId))
     .limit(1);
 
-  if (taskType === "image-editing") {
+  if (taskType === "text-to-image") {
+    const { image } = (deletedItem as TextToImageTaskItem).data;
+    if (image) {
+      const imagePath = path.resolve("data", taskId, image);
+      unlinkSync(imagePath);
+    }
+  } else if (taskType === "image-editing") {
     const { sourceImages, targetImage } = (deletedItem as ImageEditingTaskItem)
       .data;
 
     for (const sourceImage of sourceImages || []) {
-      if (typeof sourceImage === "string") {
+      if (sourceImage) {
         const sourceImagePath = path.resolve("data", taskId, sourceImage);
         unlinkSync(sourceImagePath);
       }
     }
 
-    if (typeof targetImage === "string") {
+    if (targetImage) {
       const targetImagePath = path.resolve("data", taskId, targetImage);
       unlinkSync(targetImagePath);
     }
   } else if (taskType === "text-to-video") {
     const { video } = (deletedItem as TextToVideoTaskItem).data;
-    if (typeof video === "string") {
+    if (video) {
       const videoPath = path.resolve("data", taskId, video);
       unlinkSync(videoPath);
     }
   } else if (taskType === "image-to-video") {
     const { sourceImage, targetVideo } = (deletedItem as ImageToVideoTaskItem)
       .data;
-    if (typeof sourceImage === "string") {
+    if (sourceImage) {
       const sourceImagePath = path.resolve("data", taskId, sourceImage);
       unlinkSync(sourceImagePath);
     }
-    if (typeof targetVideo === "string") {
+    if (targetVideo) {
       const targetVideoPath = path.resolve("data", taskId, targetVideo);
       unlinkSync(targetVideoPath);
     }
