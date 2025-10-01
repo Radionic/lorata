@@ -7,7 +7,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useRenameTask } from "@/lib/queries/use-task";
+import { useUpdateTaskSettings } from "@/lib/queries/use-task";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
@@ -22,7 +22,7 @@ export function RenameTaskDialog({
   onOpenChange?: (open: boolean) => void;
   task: Task;
 }) {
-  const { mutateAsync: renameTask, isLoading } = useRenameTask();
+  const { mutateAsync: renameTask, isLoading } = useUpdateTaskSettings();
   const [taskName, setTaskName] = useState(task.name);
   const isValidName = taskName.trim() && task && taskName.trim() !== task.name;
 

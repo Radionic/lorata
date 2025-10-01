@@ -64,26 +64,35 @@ export const useCreateTask = () => {
   });
 };
 
-export const useRenameTask = () => {
+export const useUpdateTaskSettings = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ taskId, name }: { taskId: string; name: string }) => {
+    mutationFn: async ({
+      taskId,
+      name,
+      prefix,
+      suffix,
+    }: {
+      taskId: string;
+      name?: string | null;
+      prefix?: string | null;
+      suffix?: string | null;
+    }) => {
       const response = await fetch(`/api/tasks/${taskId}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ name }),
+        body: JSON.stringify({ name, prefix, suffix }),
       });
 
       if (!response.ok) {
         const error = await response.json();
-        toast.error(error.error || "Failed to rename task");
+        toast.error(error.error || "Failed to update task settings");
         return false;
       }
 
-      toast.success("Task renamed successfully");
       return true;
     },
     onSuccess: (_, { taskId }) => {
@@ -124,22 +133,18 @@ export const useExportTask = () => {
       fps,
       crf,
       preset,
-      prefix,
-      suffix,
     }: {
       taskId: string;
       fps?: number;
       crf?: number;
       preset?: string;
-      prefix?: string;
-      suffix?: string;
     }) => {
       const response = await fetch(`/api/tasks/${taskId}/export`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ fps, crf, preset, prefix, suffix }),
+        body: JSON.stringify({ fps, crf, preset }),
       });
 
       if (!response.ok) {

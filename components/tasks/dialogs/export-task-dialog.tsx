@@ -17,15 +17,16 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useState } from "react";
-import { useExportTask } from "@/lib/queries/use-task";
+import { useExportTask, useUpdateTaskSettings } from "@/lib/queries/use-task";
+import { Task } from "@/lib/types";
 
 export function ExportTaskDialog({
-  taskId,
+  task,
   isVideoTask,
   open,
   onOpenChange,
 }: {
-  taskId: string;
+  task: Task;
   isVideoTask?: boolean;
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -35,20 +36,28 @@ export function ExportTaskDialog({
 
   const [crf, setCrf] = useState<number>(20);
   const [preset, setPreset] = useState<string>("fast");
-  const [prefix, setPrefix] = useState<string>("");
-  const [suffix, setSuffix] = useState<string>("");
+
+  const [prefix, setPrefix] = useState<string>(task.prefix || "");
+  const [suffix, setSuffix] = useState<string>(task.suffix || "");
 
   const { mutateAsync: exportTask } = useExportTask();
+  const { mutate: updateTaskSettings } = useUpdateTaskSettings();
+
+  const handleAffixChanged = (affix: "prefix" | "suffix") => {
+    if (affix === "prefix" && prefix !== task.prefix) {
+      updateTaskSettings({ taskId: task.id, prefix });
+    } else if (affix === "suffix" && suffix !== task.suffix) {
+      updateTaskSettings({ taskId: task.id, suffix });
+    }
+  };
 
   const doExport = () =>
     toast.promise(
       exportTask({
-        taskId,
+        taskId: task.id,
         fps: selectedFps,
         crf,
         preset,
-        prefix,
-        suffix,
       }),
       {
         loading: "Exporting...",
@@ -59,30 +68,30 @@ export function ExportTaskDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent onOpenAutoFocus={(e) => e.preventDefault()}>
         <DialogHeader>
           <DialogTitle>Export Options</DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-2">
-            <div className="space-y-2">
-              <Label>Prefix</Label>
-              <Input
-                placeholder="Optional prefix"
-                value={prefix}
-                onChange={(e) => setPrefix(e.target.value)}
-              />
-            </div>
+        <div className="grid grid-cols-2 gap-2">
+          <div className="space-y-2">
+            <Label>Prefix</Label>
+            <Input
+              placeholder="Optional prefix"
+              value={prefix}
+              onChange={(e) => setPrefix(e.target.value)}
+              onBlur={() => handleAffixChanged("prefix")}
+            />
+          </div>
 
-            <div className="space-y-2">
-              <Label>Suffix</Label>
-              <Input
-                placeholder="Optional suffix"
-                value={suffix}
-                onChange={(e) => setSuffix(e.target.value)}
-              />
-            </div>
+          <div className="space-y-2">
+            <Label>Suffix</Label>
+            <Input
+              placeholder="Optional suffix"
+              value={suffix}
+              onChange={(e) => setSuffix(e.target.value)}
+              onBlur={() => handleAffixChanged("suffix")}
+            />
           </div>
 
           {isVideoTask && (

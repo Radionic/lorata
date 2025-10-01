@@ -13,6 +13,8 @@ export const tasksTable = sqliteTable("tasks", {
   id: text("id").primaryKey(),
   name: text("name").notNull(),
   type: text({ enum: taskType }).notNull(),
+  prefix: text("prefix"),
+  suffix: text("suffix"),
   createdAt: text("created_at")
     .notNull()
     .$defaultFn(() => new Date().toISOString()),

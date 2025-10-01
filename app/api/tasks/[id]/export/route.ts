@@ -33,12 +33,10 @@ function getImagePathInfo(taskId: string, imagePath: string): ImagePathInfo {
 
 function applyAffixes(
   instruction: string,
-  prefix?: string,
-  suffix?: string
+  prefix?: string | null,
+  suffix?: string | null
 ): string {
-  const prefixText = prefix ? `${prefix} ` : "";
-  const suffixText = suffix ? ` ${suffix}` : "";
-  return `${prefixText}${instruction}${suffixText}`;
+  return `${prefix}${instruction}${suffix}`;
 }
 
 export async function POST(
@@ -54,8 +52,6 @@ export async function POST(
   const fps = body?.fps ? parseFloat(body.fps) : undefined;
   const crf = body?.crf ? parseFloat(body.crf) : undefined;
   const preset = body?.preset;
-  const prefix = body?.prefix;
-  const suffix = body?.suffix;
 
   const [task] = await db
     .select()
@@ -65,6 +61,9 @@ export async function POST(
   if (!task) {
     return NextResponse.json({ error: "Task not found" }, { status: 404 });
   }
+
+  const prefix = task.prefix;
+  const suffix = task.suffix;
 
   const items = await db
     .select()

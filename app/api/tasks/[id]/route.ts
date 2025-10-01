@@ -39,22 +39,36 @@ export async function PUT(
   }
 
   const body = await request.json();
-  const { name } = body;
+  const { name, prefix, suffix } = body;
 
-  if (!name || typeof name !== "string" || name.trim().length === 0) {
-    return NextResponse.json(
-      { error: "Task name is required and must be a non-empty string" },
-      { status: 400 }
-    );
+  const updateData: {
+    name?: string;
+    prefix?: string;
+    suffix?: string;
+    updatedAt: string;
+  } = {
+    updatedAt: new Date().toISOString(),
+  };
+
+  if (name) {
+    if (name.trim().length === 0) {
+      return NextResponse.json(
+        { error: "Task name must be a non-empty string" },
+        { status: 400 }
+      );
+    }
+    updateData.name = name.trim();
   }
 
-  await db
-    .update(tasksTable)
-    .set({
-      name: name.trim(),
-      updatedAt: new Date().toISOString(),
-    })
-    .where(eq(tasksTable.id, taskId));
+  if (prefix !== undefined) {
+    updateData.prefix = prefix;
+  }
+
+  if (suffix !== undefined) {
+    updateData.suffix = suffix;
+  }
+
+  await db.update(tasksTable).set(updateData).where(eq(tasksTable.id, taskId));
 
   return NextResponse.json({});
 }

@@ -25,7 +25,7 @@ export default function TaskPage() {
           <h1 className="text-3xl font-bold">{task?.name}</h1>
         </div>
 
-        <TaskActionButtons taskId={taskId} task={task} />
+        {task && <TaskActionButtons task={task} />}
       </div>
 
       <TaskItemsPage task={task} />

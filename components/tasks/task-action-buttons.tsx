@@ -7,13 +7,7 @@ import { Task } from "@/lib/types";
 import { GenerateInstructionDialog } from "@/components/tasks/dialogs/generate-instruction-dialog";
 import { ExportTaskDialog } from "@/components/tasks/dialogs/export-task-dialog";
 
-export function TaskActionButtons({
-  taskId,
-  task,
-}: {
-  taskId: string;
-  task?: Task | null;
-}) {
+export function TaskActionButtons({ task }: { task: Task }) {
   const { mutate: createTaskItem } = useCreateTaskItem();
 
   const isVideoTask =
@@ -42,14 +36,17 @@ export function TaskActionButtons({
         Export
       </Button>
 
-      <Button onClick={() => createTaskItem({ taskId })} className="gap-2">
+      <Button
+        onClick={() => createTaskItem({ taskId: task.id })}
+        className="gap-2"
+      >
         <Plus className="h-4 w-4" />
         Add Item
       </Button>
 
       {exportDialogOpen && (
         <ExportTaskDialog
-          taskId={taskId}
+          task={task}
           isVideoTask={isVideoTask}
           open={exportDialogOpen}
           onOpenChange={setExportDialogOpen}
@@ -58,7 +55,7 @@ export function TaskActionButtons({
 
       {generateDialogOpen && (
         <GenerateInstructionDialog
-          taskId={taskId}
+          taskId={task.id}
           hasVideo={isVideoTask}
           open={generateDialogOpen}
           onOpenChange={setGenerateDialogOpen}
