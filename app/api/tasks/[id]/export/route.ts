@@ -9,27 +9,9 @@ import {
   ImageToVideoTaskItem,
 } from "@/lib/types";
 import archiver from "archiver";
-import path from "path";
 import { match } from "ts-pattern";
 import { convertVideo } from "@/lib/video";
-
-interface ImagePathInfo {
-  absolutePath: string;
-  extension: string;
-  name: string;
-}
-
-function getImagePathInfo(taskId: string, imagePath: string): ImagePathInfo {
-  const absolutePath = path.resolve("data", taskId, imagePath);
-  const extension = path.extname(imagePath);
-  const name = path.basename(imagePath, extension);
-
-  return {
-    absolutePath,
-    extension,
-    name,
-  };
-}
+import { getImagePathInfo } from "@/lib/path-helpers";
 
 function applyAffixes(
   instruction: string,

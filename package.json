@@ -31,6 +31,7 @@
     "clsx": "^2.1.1",
     "dotenv": "^17.2.2",
     "drizzle-orm": "^0.44.5",
+    "extract-zip": "^2.0.1",
     "konva": "^10.0.2",
     "lucide-react": "^0.544.0",
     "nanoid": "^5.1.5",

@@ -1,4 +1,4 @@
-import { useMutation } from "react-query";
+import { useMutation, useQueryClient } from "react-query";
 import { toast } from "sonner";
 
 export const useUploadMedia = () => {
@@ -28,6 +28,41 @@ export const useUploadMedia = () => {
         return false;
       }
       return true;
+    },
+  });
+};
+
+export const useBulkUploadMedia = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      files,
+      taskId,
+    }: {
+      files: File[];
+      taskId: string;
+    }) => {
+      const formData = new FormData();
+      files.forEach((file) => {
+        formData.append("files", file);
+      });
+      formData.append("taskId", taskId);
+
+      const response = await fetch("/api/media/bulk", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({}));
+        toast.error(error.error || "Failed to upload media");
+        return false;
+      }
+      return true;
+    },
+    onSettled: (_, __, { taskId }) => {
+      queryClient.invalidateQueries(["taskItems", taskId]);
     },
   });
 };
