@@ -90,10 +90,13 @@ export async function POST(request: NextRequest) {
 
           // Copy image to data directory with short random ID
           const sourcePath = path.join(imagesDir, imageFile);
-          const nameWithId = `${pathInfo.name}-${nanoid(5)}${
-            pathInfo.extension
-          }`;
-          const targetPath = path.join(dataDir, nameWithId);
+          const targetName = `${pathInfo.name}${pathInfo.extension}`;
+          const targetPath = path.join(dataDir, targetName);
+          // Skip if source image already exists
+          if (existsSync(targetPath)) {
+            console.warn(`Source image already exists: ${targetPath}`);
+            continue;
+          }
           await copyFile(sourcePath, targetPath);
 
           const itemId = nanoid();
@@ -102,7 +105,7 @@ export async function POST(request: NextRequest) {
             id: itemId,
             taskId,
             data: {
-              image: nameWithId,
+              image: targetName,
               instruction,
             },
             locked: false,
@@ -124,10 +127,13 @@ export async function POST(request: NextRequest) {
 
           // Copy video to data directory with short random ID
           const sourcePath = path.join(videosDir, videoFile);
-          const nameWithId = `${pathInfo.name}-${nanoid(5)}${
-            pathInfo.extension
-          }`;
-          const targetPath = path.join(dataDir, nameWithId);
+          const targetName = `${pathInfo.name}${pathInfo.extension}`;
+          const targetPath = path.join(dataDir, targetName);
+          // Skip if source video already exists
+          if (existsSync(targetPath)) {
+            console.warn(`Source video already exists: ${targetPath}`);
+            continue;
+          }
           await copyFile(sourcePath, targetPath);
 
           const itemId = nanoid();
@@ -136,7 +142,7 @@ export async function POST(request: NextRequest) {
             id: itemId,
             taskId,
             data: {
-              video: nameWithId,
+              video: targetName,
               instruction,
             },
             locked: false,
@@ -172,15 +178,22 @@ export async function POST(request: NextRequest) {
           // Copy source image
           const sourceSourcePath = path.join(sourcesDir, sourceFile);
           const sourceTargetPath = path.join(dataDir, sourceFile);
+
+          // Skip if source image already exists
+          if (existsSync(sourceTargetPath)) {
+            console.warn(`Source image already exists: ${sourceTargetPath}`);
+            continue;
+          }
+
           await copyFile(sourceSourcePath, sourceTargetPath);
 
           // Copy target video with short random ID
           const targetSourcePath = path.join(targetsDir, targetFile);
           const targetPathInfo = getImagePathInfo("", targetFile);
-          const targetNameWithId = `${targetPathInfo.name}-${nanoid(5)}${
+          const targetName = `${targetPathInfo.name}-${nanoid(5)}${
             targetPathInfo.extension
           }`;
-          const targetTargetPath = path.join(dataDir, targetNameWithId);
+          const targetTargetPath = path.join(dataDir, targetName);
           await copyFile(targetSourcePath, targetTargetPath);
 
           const itemId = nanoid();
@@ -190,7 +203,7 @@ export async function POST(request: NextRequest) {
             taskId,
             data: {
               sourceImage: sourceFile,
-              targetVideo: targetNameWithId,
+              targetVideo: targetName,
               instruction,
             },
             locked: false,
@@ -242,6 +255,15 @@ export async function POST(request: NextRequest) {
                     }`;
 
               const sourceTargetPath = path.join(dataDir, finalSourceName);
+
+              // Skip if source already exists
+              if (existsSync(sourceTargetPath)) {
+                console.warn(
+                  `Source image already exists: ${sourceTargetPath}`
+                );
+                continue;
+              }
+
               await copyFile(sourceSourcePath, sourceTargetPath);
               sourceImages.push(finalSourceName);
             }
@@ -249,10 +271,10 @@ export async function POST(request: NextRequest) {
 
           // Copy target to data directory with short random ID
           const targetSourcePath = path.join(targetsDir, targetFile);
-          const targetNameWithId = `${targetPathInfo.name}-${nanoid(5)}${
+          const targetName = `${targetPathInfo.name}-${nanoid(5)}${
             targetPathInfo.extension
           }`;
-          const targetTargetPath = path.join(dataDir, targetNameWithId);
+          const targetTargetPath = path.join(dataDir, targetName);
           await copyFile(targetSourcePath, targetTargetPath);
 
           const itemId = nanoid();
@@ -262,7 +284,7 @@ export async function POST(request: NextRequest) {
             taskId,
             data: {
               sourceImages: sourceImages.length > 0 ? sourceImages : [],
-              targetImage: targetNameWithId,
+              targetImage: targetName,
               instruction,
             },
             locked: false,
