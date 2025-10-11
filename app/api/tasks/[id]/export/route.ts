@@ -18,7 +18,7 @@ function applyAffixes(
   prefix?: string | null,
   suffix?: string | null
 ): string {
-  return `${prefix}${instruction}${suffix}`;
+  return `${prefix || ""}${instruction}${suffix || ""}`;
 }
 
 export async function POST(
