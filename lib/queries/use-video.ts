@@ -6,28 +6,30 @@ export const useTrimVideo = () => {
     mutationFn: async ({
       taskId,
       filename,
-      start,
-      end,
+      segments,
+      replace = false,
     }: {
       taskId: string;
       filename: string;
-      start: number;
-      end: number;
+      segments: Array<{ start: number; end: number }>;
+      replace?: boolean;
     }) => {
       const response = await fetch("/api/media/video/trim", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ taskId, filename, start, end }),
+        body: JSON.stringify({ taskId, filename, segments, replace }),
       });
 
       if (!response.ok) {
         const error = await response.json().catch(() => ({}));
         toast.error(error.error || "Failed to trim video");
-        return false;
+        return null;
       }
-      return true;
+
+      const data = await response.json();
+      return data.outputPaths as string[];
     },
   });
 };

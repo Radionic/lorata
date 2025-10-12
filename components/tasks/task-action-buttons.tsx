@@ -2,14 +2,14 @@
 import { useState } from "react";
 import { Download, Plus, Sparkles, Upload } from "lucide-react";
 import { Button } from "../ui/button";
-import { useCreateTaskItem } from "@/lib/queries/use-task-item";
+import { useCreateTaskItems } from "@/lib/queries/use-task-item";
 import { Task } from "@/lib/types";
 import { GenerateInstructionDialog } from "@/components/tasks/dialogs/generate-instruction-dialog";
 import { ExportTaskDialog } from "@/components/tasks/dialogs/export-task-dialog";
 import { ImportMediaDialog } from "@/components/tasks/dialogs/import-media-dialog";
 
 export function TaskActionButtons({ task }: { task: Task }) {
-  const { mutate: createTaskItem } = useCreateTaskItem();
+  const { mutate: createTaskItems } = useCreateTaskItems();
 
   const isVideoTask =
     task?.type === "text-to-video" || task?.type === "image-to-video";
@@ -48,7 +48,7 @@ export function TaskActionButtons({ task }: { task: Task }) {
       </Button>
 
       <Button
-        onClick={() => createTaskItem({ taskId: task.id })}
+        onClick={() => createTaskItems({ taskId: task.id })}
         className="gap-2"
       >
         <Plus className="h-4 w-4" />

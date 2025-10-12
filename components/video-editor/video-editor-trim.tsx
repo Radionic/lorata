@@ -1,23 +1,51 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Pause, Play } from "lucide-react";
 import { useHotkeys } from "react-hotkeys-hook";
+import { toast } from "sonner";
+import { VideoEditorTrimControls } from "./video-editor-trim-controls";
+import { VideoEditorTrimTimeline } from "./video-editor-trim-timeline";
 
-const MIN_RANGE = 1; // seconds
+export type TrimRange = {
+  id: string;
+  start: number;
+  end: number;
+};
+
+const clamp = (v: number, min: number, max: number) =>
+  Math.min(Math.max(v, min), max);
+
+const formatTime = (s: number) => {
+  if (!Number.isFinite(s) || s < 0) s = 0;
+  const m = Math.floor(s / 60);
+  const sec = Math.floor(s - m * 60);
+  return `${m}:${sec.toString().padStart(2, "0")}`;
+};
+
+const parseMMSS = (text: string): number | null => {
+  const t = text.trim();
+  if (!t) return null;
+  const parts = t.split(":");
+  if (parts.length !== 2) return null;
+  const m = Number(parts[0]);
+  const s = Number(parts[1]);
+  if (!Number.isFinite(m) || !Number.isFinite(s)) return null;
+  if (s < 0 || s >= 60) return null;
+  return m * 60 + s;
+};
 
 export function VideoEditorTrim({
   videoSrc,
-  start,
-  end,
-  onStartChanged,
-  onEndChanged,
+  minRange = 1,
+  ranges,
+  selectedRangeId,
+  onRangesChanged,
+  onSelectedRangeChanged,
 }: {
   videoSrc: string;
-  start: number;
-  end: number;
-  onStartChanged: (v: number) => void;
-  onEndChanged: (v: number) => void;
+  minRange?: number;
+  ranges: TrimRange[];
+  selectedRangeId: string | null;
+  onRangesChanged: (ranges: TrimRange[]) => void;
+  onSelectedRangeChanged: (id: string | null) => void;
 }) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const timelineRef = useRef<HTMLDivElement | null>(null);
@@ -30,10 +58,22 @@ export function VideoEditorTrim({
     const v = videoRef.current;
     const d = v && Number.isFinite(v.duration) ? v.duration : 0;
     setDuration(d);
-    onStartChanged(0);
-    onEndChanged(Math.max(d, MIN_RANGE));
     setCurrentTime(0);
-  }, [onStartChanged, onEndChanged]);
+    // Initialize with one range if empty
+    if (ranges.length === 0) {
+      const newRange: TrimRange = {
+        id: crypto.randomUUID(),
+        start: 0,
+        end: Math.max(d, minRange),
+      };
+      onRangesChanged([newRange]);
+      onSelectedRangeChanged(newRange.id);
+    }
+  }, [minRange, ranges.length, onRangesChanged, onSelectedRangeChanged]);
+
+  const selectedRange = ranges.find((r) => r.id === selectedRangeId);
+  const start = selectedRange?.start ?? 0;
+  const end = selectedRange?.end ?? duration;
 
   const handleTimeUpdate = useCallback(() => {
     const v = videoRef.current;
@@ -41,30 +81,17 @@ export function VideoEditorTrim({
     const t = v.currentTime;
     setCurrentTime(t);
 
-    // Constrain to selection while playing
-    if (t > end) {
-      // stop at range end
-      if (!v.paused) v.pause();
-      setIsPlaying(false);
-      v.currentTime = end;
-      setCurrentTime(end);
+    // Constrain to selected range while playing
+    if (selectedRangeId && selectedRange && !v.paused) {
+      // Only stop at range end during playback
+      if (t >= selectedRange.end) {
+        v.pause();
+        setIsPlaying(false);
+        v.currentTime = selectedRange.end;
+        setCurrentTime(selectedRange.end);
+      }
     }
-    if (t < start) {
-      // stop at range start
-      v.currentTime = start;
-      setCurrentTime(start);
-    }
-  }, [start, end]);
-
-  const clamp = (v: number, min: number, max: number) =>
-    Math.min(Math.max(v, min), max);
-
-  const formatTime = (s: number) => {
-    if (!Number.isFinite(s) || s < 0) s = 0;
-    const m = Math.floor(s / 60);
-    const sec = Math.floor(s - m * 60);
-    return `${m}:${sec.toString().padStart(2, "0")}`;
-  };
+  }, [selectedRangeId, selectedRange]);
 
   // Text buffers for mm:ss inputs
   const [startText, setStartText] = useState("");
@@ -77,44 +104,61 @@ export function VideoEditorTrim({
     setEndText(formatTime(end));
   }, [end]);
 
-  const parseMMSS = (text: string): number | null => {
-    const t = text.trim();
-    if (!t) return null;
-    const parts = t.split(":");
-    if (parts.length !== 2) return null;
-    const m = Number(parts[0]);
-    const s = Number(parts[1]);
-    if (!Number.isFinite(m) || !Number.isFinite(s)) return null;
-    if (s < 0 || s >= 60) return null;
-    return m * 60 + s;
-  };
+  const commitStart = useCallback(
+    (next: number) => {
+      if (!selectedRange) return;
+      const clamped = clamp(next, 0, Math.max(0, selectedRange.end - minRange));
+      const updated = ranges.map((r) =>
+        r.id === selectedRangeId ? { ...r, start: clamped } : r
+      );
+      onRangesChanged(updated);
+      const v = videoRef.current;
+      const t = v?.currentTime ?? currentTime;
+      if (t < clamped) {
+        // keep playhead inside selection
+        if (v) v.currentTime = clamped;
+        setCurrentTime(clamped);
+      }
+    },
+    [
+      minRange,
+      selectedRange,
+      ranges,
+      selectedRangeId,
+      onRangesChanged,
+      currentTime,
+    ]
+  );
 
-  const commitStart = (next: number) => {
-    const clamped = clamp(next, 0, Math.max(0, end - MIN_RANGE));
-    onStartChanged(clamped);
-    const v = videoRef.current;
-    const t = v?.currentTime ?? currentTime;
-    if (t < clamped) {
-      // keep playhead inside selection
-      if (v) v.currentTime = clamped;
-      setCurrentTime(clamped);
-    }
-  };
-
-  const commitEnd = (next: number) => {
-    const clamped = clamp(
-      next,
-      Math.min(duration, start + MIN_RANGE),
-      duration || next
-    );
-    onEndChanged(clamped);
-    const v = videoRef.current;
-    const t = v?.currentTime ?? currentTime;
-    if (t > clamped) {
-      if (v) v.currentTime = clamped;
-      setCurrentTime(clamped);
-    }
-  };
+  const commitEnd = useCallback(
+    (next: number) => {
+      if (!selectedRange) return;
+      const clamped = clamp(
+        next,
+        Math.min(duration, selectedRange.start + minRange),
+        duration || next
+      );
+      const updated = ranges.map((r) =>
+        r.id === selectedRangeId ? { ...r, end: clamped } : r
+      );
+      onRangesChanged(updated);
+      const v = videoRef.current;
+      const t = v?.currentTime ?? currentTime;
+      if (t > clamped) {
+        if (v) v.currentTime = clamped;
+        setCurrentTime(clamped);
+      }
+    },
+    [
+      minRange,
+      selectedRange,
+      duration,
+      ranges,
+      selectedRangeId,
+      onRangesChanged,
+      currentTime,
+    ]
+  );
 
   const togglePlayPause = async () => {
     const v = videoRef.current;
@@ -125,10 +169,21 @@ export function VideoEditorTrim({
       setIsPlaying(false);
       return;
     }
+
     const t = v.currentTime;
-    if (t < start || t >= end) {
-      v.currentTime = start;
-      setCurrentTime(start);
+    // If there's a selected range, play within it
+    if (selectedRange) {
+      // Play from start if at the end of the range
+      if (t < selectedRange.start || t >= selectedRange.end) {
+        v.currentTime = selectedRange.start;
+        setCurrentTime(selectedRange.start);
+      }
+    } else {
+      // Play from start if at the end of the video
+      if (duration > 0 && t >= duration - 0.1) {
+        v.currentTime = 0;
+        setCurrentTime(0);
+      }
     }
     await v.play();
     setIsPlaying(true);
@@ -139,9 +194,44 @@ export function VideoEditorTrim({
     preventDefault: true,
   });
 
+  const addNewRange = () => {
+    const newRange: TrimRange = {
+      id: crypto.randomUUID(),
+      start: 0,
+      end: Math.min(duration, minRange * 5),
+    };
+    onRangesChanged([...ranges, newRange]);
+    onSelectedRangeChanged(newRange.id);
+  };
+
+  const deleteSelectedRange = () => {
+    if (!selectedRangeId) return;
+
+    // Prevent deleting the last range
+    if (ranges.length === 1) {
+      toast.warning("Cannot delete the last range");
+      return;
+    }
+
+    const updated = ranges.filter((r) => r.id !== selectedRangeId);
+    onRangesChanged(updated);
+
+    // Select the first remaining range
+    if (updated.length > 0) {
+      onSelectedRangeChanged(updated[0].id);
+    }
+  };
+
   // Timeline interactions
-  type DragType = "none" | "left" | "right" | "scrub";
-  const dragRef = useRef<{ type: DragType; wasPlaying: boolean }>({
+  type DragType = "none" | "left" | "right" | "scrub" | "move";
+  const dragRef = useRef<{
+    type: DragType;
+    wasPlaying: boolean;
+    rangeId?: string;
+    initialTime?: number;
+    originalStart?: number;
+    originalEnd?: number;
+  }>({
     type: "none",
     wasPlaying: false,
   });
@@ -171,20 +261,43 @@ export function VideoEditorTrim({
       }
 
       if (t === "left") {
-        const maxLeft = end - MIN_RANGE;
-        const next = clamp(time, 0, Math.max(0, maxLeft));
-        commitStart(next);
+        commitStart(time);
         return;
       }
 
       if (t === "right") {
-        const minRight = start + MIN_RANGE;
-        const next = clamp(time, Math.min(minRight, duration), duration);
-        commitEnd(next);
+        commitEnd(time);
+        return;
+      }
+
+      if (t === "move") {
+        const { rangeId, initialTime, originalStart, originalEnd } =
+          dragRef.current;
+        if (
+          !rangeId ||
+          initialTime === undefined ||
+          originalStart === undefined ||
+          originalEnd === undefined
+        )
+          return;
+
+        const delta = time - initialTime;
+        const rangeLength = originalEnd - originalStart;
+        const newStart = clamp(
+          originalStart + delta,
+          0,
+          duration - rangeLength
+        );
+        const newEnd = newStart + rangeLength;
+
+        const updated = ranges.map((r) =>
+          r.id === rangeId ? { ...r, start: newStart, end: newEnd } : r
+        );
+        onRangesChanged(updated);
         return;
       }
     },
-    [start, end, duration]
+    [duration, commitStart, commitEnd, ranges, onRangesChanged]
   );
 
   const onGlobalPointerUp = useCallback(() => {
@@ -195,7 +308,11 @@ export function VideoEditorTrim({
       if (wasPlaying && v && v.paused) {
         // Only resume if playhead is within the selection
         const t = v.currentTime;
-        if (t >= start && t < end) {
+        if (
+          selectedRange &&
+          t >= selectedRange.start &&
+          t < selectedRange.end
+        ) {
           v.play().catch(() => {});
           setIsPlaying(true);
         }
@@ -203,14 +320,27 @@ export function VideoEditorTrim({
     }
     dragRef.current.type = "none";
     dragRef.current.wasPlaying = false;
+    dragRef.current.rangeId = undefined;
     window.removeEventListener("pointermove", onGlobalPointerMove);
     window.removeEventListener("pointerup", onGlobalPointerUp);
-  }, [onGlobalPointerMove]);
+  }, [onGlobalPointerMove, selectedRange]);
 
-  const beginDrag = (type: DragType, clientX?: number) => {
-    dragRef.current = { type, wasPlaying: isPlaying };
-    // Pause while scrubbing for precision
-    if (type === "scrub" && isPlaying) {
+  const beginDrag = (type: DragType, clientX?: number, rangeId?: string) => {
+    const initialTime =
+      clientX !== undefined ? getTimeFromClientX(clientX) : undefined;
+    const range = rangeId ? ranges.find((r) => r.id === rangeId) : undefined;
+
+    dragRef.current = {
+      type,
+      wasPlaying: isPlaying,
+      rangeId,
+      initialTime,
+      originalStart: range?.start,
+      originalEnd: range?.end,
+    };
+
+    // Pause while scrubbing/moving for precision
+    if ((type === "scrub" || type === "move") && isPlaying) {
       const v = videoRef.current;
       v?.pause();
       setIsPlaying(false);
@@ -232,27 +362,53 @@ export function VideoEditorTrim({
     // If pressed not primary button, ignore
     if (e.button !== 0) return;
 
+    // Don't deselect if there's only one range
+    if (ranges.length > 1) {
+      onSelectedRangeChanged(null);
+    }
     (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
     beginDrag("scrub", e.clientX);
   };
 
   const onHandlePointerDown = (
     e: React.PointerEvent<HTMLDivElement>,
-    type: "left" | "right"
+    type: "left" | "right",
+    rangeId: string
   ) => {
     if (e.button !== 0) return;
     e.stopPropagation();
-    beginDrag(type);
+    // Select the range when dragging its handle
+    onSelectedRangeChanged(rangeId);
+    beginDrag(type, undefined, rangeId);
   };
 
-  const percent = (time: number) => {
-    const d = duration || 1;
-    return (clamp(time, 0, d) / d) * 100;
+  const onRangeClick = (
+    e: React.PointerEvent<HTMLDivElement>,
+    rangeId: string
+  ) => {
+    // Select the range
+    onSelectedRangeChanged(rangeId);
+    // Always start move drag when clicking a range
+    beginDrag("move", e.clientX, rangeId);
   };
 
-  const startPct = percent(start);
-  const endPct = percent(end);
-  const playheadPct = percent(currentTime);
+  const handleStartBlur = () => {
+    const parsed = parseMMSS(startText);
+    if (parsed == null) {
+      setStartText(formatTime(start));
+      return;
+    }
+    commitStart(parsed);
+  };
+
+  const handleEndBlur = () => {
+    const parsed = parseMMSS(endText);
+    if (parsed == null) {
+      setEndText(formatTime(end));
+      return;
+    }
+    commitEnd(parsed);
+  };
 
   return (
     <div className="container mx-auto flex flex-col items-center gap-4 py-4">
@@ -271,103 +427,34 @@ export function VideoEditorTrim({
       </div>
 
       {/* Controls */}
-      <div className="flex items-center w-full">
-        <Button variant="ghost" onClick={togglePlayPause}>
-          {isPlaying ? (
-            <Pause className="h-4 w-4" />
-          ) : (
-            <Play className="h-4 w-4" />
-          )}
-        </Button>
-
-        <div className="text-sm text-muted-foreground">
-          {formatTime(currentTime)} / {formatTime(duration)}
-        </div>
-
-        <div className="flex items-center gap-2 ml-auto">
-          <label className="text-sm text-muted-foreground">Start (mm:ss)</label>
-          <Input
-            type="text"
-            inputMode="numeric"
-            value={startText}
-            onChange={(e) => setStartText(e.target.value)}
-            onBlur={() => {
-              const parsed = parseMMSS(startText);
-              if (parsed == null) {
-                setStartText(formatTime(start));
-                return;
-              }
-              commitStart(parsed);
-            }}
-            placeholder="0:00"
-            className="w-28"
-          />
-          <label className="text-sm text-muted-foreground">End (mm:ss)</label>
-          <Input
-            type="text"
-            inputMode="numeric"
-            value={endText}
-            onChange={(e) => setEndText(e.target.value)}
-            onBlur={() => {
-              const parsed = parseMMSS(endText);
-              if (parsed == null) {
-                setEndText(formatTime(end));
-                return;
-              }
-              commitEnd(parsed);
-            }}
-            placeholder={formatTime(duration)}
-            className="w-28"
-          />
-        </div>
-      </div>
+      <VideoEditorTrimControls
+        isPlaying={isPlaying}
+        currentTime={currentTime}
+        duration={duration}
+        selectedRange={selectedRange}
+        startText={startText}
+        endText={endText}
+        onPlayPause={togglePlayPause}
+        onAddNewRange={addNewRange}
+        onDeleteRange={deleteSelectedRange}
+        onStartTextChange={setStartText}
+        onEndTextChange={setEndText}
+        onStartBlur={handleStartBlur}
+        onEndBlur={handleEndBlur}
+        formatTime={formatTime}
+      />
 
       {/* Timeline */}
-      <div className="w-full">
-        <div
-          ref={timelineRef}
-          onPointerDown={onTrackPointerDown}
-          className="relative h-16 rounded-md border bg-gradient-to-b from-muted/70 to-muted/50 select-none cursor-pointer shadow-sm"
-        >
-          {/* Base track */}
-          <div className="absolute inset-y-3 left-0 right-0 bg-muted-foreground/15" />
-
-          {/* Selected range overlay */}
-          <div
-            className="absolute top-3 bottom-3 rounded-lg bg-primary/25 ring-1 ring-primary/30"
-            style={{
-              left: `${startPct}%`,
-              width: `${Math.max(endPct - startPct, 0)}%`,
-            }}
-          />
-
-          {/* Left handle */}
-          <div
-            onPointerDown={(e) => onHandlePointerDown(e, "left")}
-            className="absolute top-2.5 bottom-2.5 w-2.5 rounded-full bg-primary shadow-sm hover:bg-primary/90 cursor-ew-resize border border-primary/50 translate-x-[-50%]"
-            style={{ left: `${startPct}%` }}
-          />
-
-          {/* Right handle */}
-          <div
-            onPointerDown={(e) => onHandlePointerDown(e, "right")}
-            className="absolute top-2.5 bottom-2.5 w-2.5 rounded-full bg-primary shadow-sm hover:bg-primary/90 cursor-ew-resize border border-primary/50 translate-x-[-50%]"
-            style={{ left: `${endPct}%` }}
-          />
-
-          {/* Playhead */}
-          <div
-            className="absolute top-0 bottom-0 w-px bg-foreground/80"
-            style={{ left: `calc(${playheadPct}% )` }}
-          />
-
-          {/* Playhead knob */}
-          <div
-            className="absolute -top-1.5 h-3 w-3 rounded-full bg-foreground shadow border border-background"
-            style={{ left: `calc(${playheadPct}% - 6px)` }}
-          />
-        </div>
-      </div>
+      <VideoEditorTrimTimeline
+        ref={timelineRef}
+        ranges={ranges}
+        selectedRangeId={selectedRangeId}
+        currentTime={currentTime}
+        duration={duration}
+        onTrackPointerDown={onTrackPointerDown}
+        onRangeClick={onRangeClick}
+        onHandlePointerDown={onHandlePointerDown}
+      />
     </div>
   );
 }

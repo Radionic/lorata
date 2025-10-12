@@ -89,34 +89,26 @@ export async function convertVideo({
   return outputPath;
 }
 
-/**
- * Extract a segment from a video using ffmpeg without re-encoding.
- * - Uses stream copy for both video and audio (`-c copy`).
- * - The file will be overwritten if it already exists.
- */
-export async function extractVideoSegment({
+async function extractSegment({
   inputPath,
+  outputPath,
   start,
   end,
 }: {
   inputPath: string;
-  start: number; // seconds
-  end: number; // seconds
+  outputPath: string;
+  start: number;
+  end: number;
 }) {
   if (!isFinite(start) || start < 0) {
-    throw new Error("Invalid start time");
+    throw new Error(`Invalid start time`);
   }
   if (!isFinite(end) || end <= 0) {
-    throw new Error("Invalid end time");
+    throw new Error(`Invalid end time`);
   }
   if (end <= start) {
-    throw new Error("End time must be greater than start time");
+    throw new Error(`End time must be greater than start time`);
   }
-
-  const dir = path.dirname(inputPath);
-  const outputDir = path.join(dir, "passthrough");
-  await mkdir(outputDir, { recursive: true });
-  const outputPath = path.join(outputDir, path.basename(inputPath));
 
   const dur = end - start;
   const args: string[] = [
@@ -133,9 +125,75 @@ export async function extractVideoSegment({
   ];
 
   await executeFFmpeg(args);
+}
 
-  await unlink(inputPath);
-  await rename(outputPath, inputPath);
+/**
+ * Extract segments from a video using ffmpeg without re-encoding.
+ * - Uses stream copy for both video and audio (`-c copy`)
+ * - Supports two modes:
+ *   1. Replace mode (replace=true): Only works with a single segment. Replaces the original file.
+ *   2. Create mode (replace=false): Creates new files in the same directory with unique names.
+ * - Returns array of relative filenames for the output(s)
+ */
+export async function extractVideoSegments({
+  inputPath,
+  segments,
+  replace = false,
+}: {
+  inputPath: string;
+  segments: Array<{ start: number; end: number }>;
+  replace?: boolean;
+}): Promise<string[]> {
+  if (!segments || segments.length === 0) {
+    throw new Error("No segments provided");
+  }
+
+  if (replace && segments.length > 1) {
+    throw new Error("Replace mode only works with a single segment");
+  }
+
+  const dir = path.dirname(inputPath);
+  const { name, ext } = path.parse(inputPath);
+  const outputPaths: string[] = [];
+
+  if (replace) {
+    // Replace mode: extract to temp location, then replace original
+    const { start, end } = segments[0];
+    const tempDir = path.join(dir, "passthrough");
+    await mkdir(tempDir, { recursive: true });
+    const tempPath = path.join(tempDir, path.basename(inputPath));
+
+    await extractSegment({
+      inputPath,
+      outputPath: tempPath,
+      start,
+      end,
+    });
+
+    await unlink(inputPath);
+    await rename(tempPath, inputPath);
+
+    outputPaths.push(path.basename(inputPath));
+  } else {
+    // Create mode: create new files in the same directory
+    for (let i = 0; i < segments.length; i++) {
+      const { start, end } = segments[i];
+      const timestamp = Date.now();
+      const outputFilename = `${name}_segment_${timestamp}${ext}`;
+      const outputPath = path.join(dir, outputFilename);
+
+      await extractSegment({
+        inputPath,
+        outputPath,
+        start,
+        end,
+      });
+
+      outputPaths.push(outputFilename);
+    }
+  }
+
+  return outputPaths;
 }
 
 /**

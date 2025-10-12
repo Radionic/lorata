@@ -50,18 +50,26 @@ export const useUpdateTaskItem = <T extends TaskItem>() => {
   });
 };
 
-export const useCreateTaskItem = () => {
+export const useCreateTaskItems = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ taskId }: { taskId: string }) => {
+    mutationFn: async ({
+      taskId,
+      itemsData,
+    }: {
+      taskId: string;
+      itemsData?: Partial<TaskItem["data"]>[];
+    }) => {
       const response = await fetch(`/api/tasks/${taskId}/items`, {
         method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: itemsData ? JSON.stringify({ itemsData }) : undefined,
       });
 
       if (!response.ok) {
         const error = await response.json();
-        toast.error(error.error || "Failed to create task item");
+        toast.error(error.error || "Failed to create task items");
         return false;
       }
       return true;

@@ -1,29 +1,46 @@
 import { NextRequest, NextResponse } from "next/server";
 import path from "path";
 import { existsSync } from "fs";
-import { extractVideoSegment } from "@/lib/video";
+import { extractVideoSegments } from "@/lib/video";
 
 export async function POST(request: NextRequest) {
-  const { taskId, filename, start, end } = await request.json();
+  const { taskId, filename, segments, replace } = await request.json();
 
-  if (!taskId || !filename || start == null || end == null) {
+  if (!taskId || !filename) {
     return NextResponse.json(
-      { error: "Missing required fields: taskId, filename, start, end" },
+      { error: "Missing required fields: taskId, filename" },
       { status: 400 }
     );
   }
 
-  const s = Number(start);
-  const e = Number(end);
-  if (!isFinite(s) || !isFinite(e) || s < 0 || e <= s) {
+  if (!segments || !Array.isArray(segments) || segments.length === 0) {
     return NextResponse.json(
-      { error: "Invalid start/end values" },
+      { error: "segments array is required" },
       { status: 400 }
     );
+  }
+
+  // Validate all segments
+  for (let i = 0; i < segments.length; i++) {
+    const { start, end } = segments[i];
+    if (
+      start == null ||
+      end == null ||
+      !isFinite(start) ||
+      !isFinite(end) ||
+      start < 0 ||
+      end <= start
+    ) {
+      return NextResponse.json(
+        { error: `Invalid start/end values for segment ${i + 1}` },
+        { status: 400 }
+      );
+    }
   }
 
   const baseDir = path.resolve(process.cwd(), "data", taskId);
   const inputPath = path.resolve(baseDir, filename);
+
   if (!inputPath.startsWith(baseDir + path.sep)) {
     return NextResponse.json({ error: "Access denied" }, { status: 403 });
   }
@@ -35,11 +52,11 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  await extractVideoSegment({
+  const outputPaths = await extractVideoSegments({
     inputPath,
-    start: s,
-    end: e,
+    segments,
+    replace: !!replace,
   });
 
-  return NextResponse.json({});
+  return NextResponse.json({ outputPaths });
 }

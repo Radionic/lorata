@@ -9,6 +9,8 @@ import { useDeleteMedia, useUploadMedia } from "@/lib/queries/use-media";
 import { useMediaLoader } from "@/lib/hooks/use-media-loader";
 import { ImageEditor } from "../image-editor/image-editor";
 import { VideoEditor } from "../video-editor/video-editor";
+import { useCreateTaskItems } from "@/lib/queries/use-task-item";
+import { useTask } from "@/lib/queries/use-task";
 
 function formatDuration(seconds: number) {
   if (!seconds || !isFinite(seconds)) return "";
@@ -148,6 +150,8 @@ export function MediaUploadArea({
 
   const { mutateAsync: uploadMedia, isLoading: isUploading } = useUploadMedia();
   const { mutateAsync: deleteMedia, isLoading: isDeleting } = useDeleteMedia();
+  const { mutateAsync: createTaskItems } = useCreateTaskItems();
+  const { data: task } = useTask(taskId);
 
   const _uploadMedia = async ({
     file,
@@ -324,6 +328,26 @@ export function MediaUploadArea({
             videoName={mediaName}
             taskId={taskId}
             onClose={() => setShowEditor(false)}
+            onVideoTrimmed={async (outputPaths) => {
+              if (!task) return;
+
+              const itemsData = outputPaths.map((path) => {
+                if (task.type === "text-to-video") {
+                  return { video: path };
+                } else if (task.type === "image-to-video") {
+                  return { targetVideo: path };
+                }
+                return {};
+              });
+
+              await createTaskItems({ taskId, itemsData });
+
+              toast.success(
+                `Created ${outputPaths.length} task item${
+                  outputPaths.length > 1 ? "s" : ""
+                } with trimmed videos`
+              );
+            }}
           />
         </div>
       )}
