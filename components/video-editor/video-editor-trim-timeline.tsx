@@ -189,9 +189,6 @@ export const VideoEditorTrimTimeline = ({
 
   const onTrackPointerDown: React.PointerEventHandler<HTMLDivElement> = (e) => {
     if (e.button !== 0) return;
-    if (ranges.length > 1) {
-      onSelectedRangeChanged(null);
-    }
     (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
     beginDrag("scrub", e.clientX);
   };

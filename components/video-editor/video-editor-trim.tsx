@@ -172,8 +172,8 @@ export function VideoEditorTrim({
     const t = v.currentTime;
     // If there's a selected range, play within it
     if (selectedRange) {
-      // Play from start if at the end of the range
-      if (t < selectedRange.start || t >= selectedRange.end) {
+      // Play from start if near the end of the range
+      if (t < selectedRange.start || t >= selectedRange.end - 0.2) {
         v.currentTime = selectedRange.start;
         setCurrentTime(selectedRange.start);
       }
@@ -196,8 +196,8 @@ export function VideoEditorTrim({
   const addNewRange = () => {
     const newRange: TrimRange = {
       id: crypto.randomUUID(),
-      start: 0,
-      end: Math.min(duration, minRange * 5),
+      start: currentTime,
+      end: Math.min(duration, currentTime + minRange * 5),
     };
     onRangesChanged([...ranges, newRange]);
     onSelectedRangeChanged(newRange.id);
