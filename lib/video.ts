@@ -280,3 +280,26 @@ export async function extractFrames(
   }
   return result;
 }
+
+/**
+ * Extract the first frame from a video as a JPEG image.
+ */
+export async function extractFirstFrame(
+  inputPath: string,
+  outputPath: string
+): Promise<void> {
+  const args: string[] = [
+    "-y",
+    "-i",
+    inputPath,
+    "-vf",
+    "select=eq(n\\,0)",
+    "-vframes",
+    "1",
+    "-q:v",
+    "0",
+    outputPath,
+  ];
+
+  await executeFFmpeg(args);
+}

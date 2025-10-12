@@ -133,18 +133,20 @@ export const useExportTask = () => {
       fps,
       crf,
       preset,
+      useFirstFrame, // For image-to-video tasks only
     }: {
       taskId: string;
       fps?: number;
       crf?: number;
       preset?: string;
+      useFirstFrame?: boolean;
     }) => {
       const response = await fetch(`/api/tasks/${taskId}/export`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ fps, crf, preset }),
+        body: JSON.stringify({ fps, crf, preset, useFirstFrame }),
       });
 
       if (!response.ok) {

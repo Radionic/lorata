@@ -17,6 +17,9 @@ import { TextToImageItem } from "./items/text-to-image-item";
 import { TextToVideoItem } from "./items/text-to-video-item";
 import { ImageToVideoItem } from "./items/image-to-video-item";
 import { cn } from "@/lib/utils";
+import { Info, X } from "lucide-react";
+import { useLocalStorage } from "usehooks-ts";
+import { Button } from "@/components/ui/button";
 
 export function TaskItemsPage({ task }: { task?: Task }) {
   const router = useRouter();
@@ -24,6 +27,10 @@ export function TaskItemsPage({ task }: { task?: Task }) {
   const taskId = params.id as string;
 
   const { data: items, isLoading, error } = useTaskItems(taskId);
+  const [showI2VExportBanner, setShowI2VExportBanner] = useLocalStorage(
+    "show-i2v-export-banner",
+    true
+  );
 
   if (!task) {
     return null;
@@ -45,6 +52,23 @@ export function TaskItemsPage({ task }: { task?: Task }) {
       isLoading={isLoading}
       error={error}
     >
+      {task.type === "image-to-video" && showI2VExportBanner && (
+        <div className="mb-8 flex items-center gap-2 rounded-md bg-blue-500/10 border border-blue-500/20 px-3 py-2 text-sm text-blue-700">
+          <Info className="h-4 w-4 mt-0.5 shrink-0" />
+          <p className="flex-1">
+            You can leave the source image blank to automatically use the first
+            frame of the target video as the source image when exporting.
+          </p>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-5 w-5 -mt-0.5 -mr-1 hover:bg-blue-500/20 text-blue-700"
+            onClick={() => setShowI2VExportBanner(true)}
+          >
+            <X className="h-3.5 w-3.5" />
+          </Button>
+        </div>
+      )}
       <div
         className={cn(
           "grid gap-6",

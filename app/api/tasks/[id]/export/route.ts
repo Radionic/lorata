@@ -10,8 +10,11 @@ import {
 } from "@/lib/types";
 import archiver from "archiver";
 import { match } from "ts-pattern";
-import { convertVideo } from "@/lib/video";
-import { getImagePathInfo } from "@/lib/path-helpers";
+import { convertVideo, extractFirstFrame } from "@/lib/video";
+import { getImagePathInfo, ImagePathInfo } from "@/lib/path-helpers";
+import { mkdir, rm } from "fs/promises";
+import path from "path";
+import { existsSync } from "fs";
 
 function applyAffixes(
   instruction: string,
@@ -34,6 +37,7 @@ export async function POST(
   const fps = body?.fps ? parseFloat(body.fps) : undefined;
   const crf = body?.crf ? parseFloat(body.crf) : undefined;
   const preset = body?.preset;
+  const useFirstFrame = body?.useFirstFrame ?? false;
 
   const [task] = await db
     .select()
@@ -76,143 +80,162 @@ export async function POST(
     });
   });
 
-  await match(task.type)
-    .with("image-editing", async () => {
-      for (let i = 0; i < items.length; i++) {
-        const item = items[i] as ImageEditingTaskItem;
-        const itemData = item.data;
-        if (
-          !itemData.instruction ||
-          !itemData.sourceImages ||
-          itemData.sourceImages.length === 0 ||
-          !itemData.targetImage
-        )
-          continue;
+  // Create a temp directory for export
+  const tempDir = path.resolve("data", taskId, "tmp_export");
+  try {
+    await mkdir(tempDir, { recursive: true });
 
-        // Use the first source image as the base name
-        const firstSourceImage = itemData.sourceImages[0] as string;
-        const firstSourceImageInfo = getImagePathInfo(
-          task.id,
-          firstSourceImage
-        );
+    await match(task.type)
+      .with("image-editing", async () => {
+        for (let i = 0; i < items.length; i++) {
+          const item = items[i] as ImageEditingTaskItem;
+          const itemData = item.data;
+          if (
+            !itemData.instruction ||
+            !itemData.sourceImages ||
+            itemData.sourceImages.length === 0 ||
+            !itemData.targetImage
+          )
+            continue;
 
-        // Add all source images
-        for (let i = 0; i < itemData.sourceImages.length; i++) {
-          const sourceImage = itemData.sourceImages[i] as string;
-          const sourceImageInfo = getImagePathInfo(task.id, sourceImage);
-          archive.file(sourceImageInfo.absolutePath, {
-            name: `sources_${i}/${firstSourceImageInfo.name}${sourceImageInfo.extension}`,
+          // Use the first source image as the base name
+          const firstSourceImage = itemData.sourceImages[0] as string;
+          const firstSourceImageInfo = getImagePathInfo(
+            task.id,
+            firstSourceImage
+          );
+
+          // Add all source images
+          for (let i = 0; i < itemData.sourceImages.length; i++) {
+            const sourceImage = itemData.sourceImages[i] as string;
+            const sourceImageInfo = getImagePathInfo(task.id, sourceImage);
+            archive.file(sourceImageInfo.absolutePath, {
+              name: `sources_${i}/${firstSourceImageInfo.name}${sourceImageInfo.extension}`,
+            });
+          }
+
+          const targetImage = itemData.targetImage as string;
+          const targetImageInfo = getImagePathInfo(task.id, targetImage);
+
+          archive.file(targetImageInfo.absolutePath, {
+            name: `targets/${firstSourceImageInfo.name}${targetImageInfo.extension}`,
+          });
+
+          archive.append(applyAffixes(itemData.instruction, prefix, suffix), {
+            name: `instructions/${firstSourceImageInfo.name}.txt`,
           });
         }
+      })
+      .with("text-to-image", async () => {
+        for (let i = 0; i < items.length; i++) {
+          const item = items[i] as TextToImageTaskItem;
+          const itemData = item.data;
+          if (!itemData.image || !itemData.instruction) continue;
 
-        const targetImage = itemData.targetImage as string;
-        const targetImageInfo = getImagePathInfo(task.id, targetImage);
+          const image = itemData.image as string;
+          const imageInfo = getImagePathInfo(task.id, image);
 
-        archive.file(targetImageInfo.absolutePath, {
-          name: `targets/${firstSourceImageInfo.name}${targetImageInfo.extension}`,
-        });
-
-        archive.append(applyAffixes(itemData.instruction, prefix, suffix), {
-          name: `instructions/${firstSourceImageInfo.name}.txt`,
-        });
-      }
-    })
-    .with("text-to-image", async () => {
-      for (let i = 0; i < items.length; i++) {
-        const item = items[i] as TextToImageTaskItem;
-        const itemData = item.data;
-        if (!itemData.image || !itemData.instruction) continue;
-
-        const image = itemData.image as string;
-        const imageInfo = getImagePathInfo(task.id, image);
-
-        archive.file(imageInfo.absolutePath, {
-          name: `images/${image}`,
-        });
-        archive.append(applyAffixes(itemData.instruction, prefix, suffix), {
-          name: `instructions/${imageInfo.name}.txt`,
-        });
-      }
-    })
-    .with("text-to-video", async () => {
-      for (let i = 0; i < items.length; i++) {
-        const item = items[i] as TextToVideoTaskItem;
-        const itemData = item.data;
-        if (!itemData.video || !itemData.instruction) continue;
-
-        const video = itemData.video as string;
-        const videoInfo = getImagePathInfo(task.id, video);
-
-        let filePath = videoInfo.absolutePath;
-        if (fps && fps > 0) {
-          const converted = await convertVideo({
-            inputPath: videoInfo.absolutePath,
-            fps,
-            crf,
-            preset,
+          archive.file(imageInfo.absolutePath, {
+            name: `images/${image}`,
           });
-          filePath = converted;
-        }
-        archive.file(filePath, {
-          name: `videos/${video}`,
-        });
-        archive.append(applyAffixes(itemData.instruction, prefix, suffix), {
-          name: `instructions/${videoInfo.name}.txt`,
-        });
-      }
-    })
-    .with("image-to-video", async () => {
-      for (let i = 0; i < items.length; i++) {
-        const item = items[i] as ImageToVideoTaskItem;
-        const itemData = item.data;
-        if (
-          !itemData.sourceImage ||
-          !itemData.targetVideo ||
-          !itemData.instruction
-        )
-          continue;
-
-        const sourceImage = itemData.sourceImage as string;
-        const targetVideo = itemData.targetVideo as string;
-
-        const sourceInfo = getImagePathInfo(task.id, sourceImage);
-        const targetInfo = getImagePathInfo(task.id, targetVideo);
-
-        archive.file(sourceInfo.absolutePath, {
-          name: `sources/${sourceImage}`,
-        });
-
-        let targetPath = targetInfo.absolutePath;
-        if (fps && fps > 0) {
-          const converted = await convertVideo({
-            inputPath: targetInfo.absolutePath,
-            fps,
-            crf,
-            preset,
+          archive.append(applyAffixes(itemData.instruction, prefix, suffix), {
+            name: `instructions/${imageInfo.name}.txt`,
           });
-          targetPath = converted;
         }
-        archive.file(targetPath, {
-          name: `targets/${sourceInfo.name}${targetInfo.extension}`,
-        });
-        archive.append(applyAffixes(itemData.instruction, prefix, suffix), {
-          name: `instructions/${sourceInfo.name}.txt`,
-        });
-      }
-    })
-    .exhaustive();
+      })
+      .with("text-to-video", async () => {
+        for (let i = 0; i < items.length; i++) {
+          const item = items[i] as TextToVideoTaskItem;
+          const itemData = item.data;
+          if (!itemData.video || !itemData.instruction) continue;
 
-  archive.finalize();
+          const video = itemData.video as string;
+          const videoInfo = getImagePathInfo(task.id, video);
 
-  const zipBuffer = await zipPromise;
-  const filename = `export-${task.name}-${Date.now()}.zip`;
+          const videoPath = fps
+            ? await convertVideo({
+                inputPath: videoInfo.absolutePath,
+                fps,
+                crf,
+                preset,
+              })
+            : videoInfo.absolutePath;
+          archive.file(videoPath, {
+            name: `videos/${video}`,
+          });
+          archive.append(applyAffixes(itemData.instruction, prefix, suffix), {
+            name: `instructions/${videoInfo.name}.txt`,
+          });
+        }
+      })
+      .with("image-to-video", async () => {
+        for (let i = 0; i < items.length; i++) {
+          const item = items[i] as ImageToVideoTaskItem;
+          const itemData = item.data;
+          if (
+            (!itemData.sourceImage && !useFirstFrame) ||
+            !itemData.targetVideo ||
+            !itemData.instruction
+          )
+            continue;
 
-  return new NextResponse(zipBuffer, {
-    status: 200,
-    headers: {
-      "Content-Type": "application/zip",
-      "Content-Length": zipBuffer.length.toString(),
-      "Content-Disposition": `attachment; filename="${filename}"`,
-    },
-  });
+          const targetInfo = getImagePathInfo(task.id, itemData.targetVideo);
+          let sourceInfo: ImagePathInfo;
+
+          if (useFirstFrame) {
+            // Extract first frame from target video
+            const framePath = path.join(tempDir, `frame_${i}.jpg`);
+            await extractFirstFrame(targetInfo.absolutePath, framePath);
+            sourceInfo = {
+              absolutePath: framePath,
+              extension: ".jpg",
+              name: `frame_${i}`,
+            };
+          } else {
+            // Use the existing source image
+            const sourceImage = itemData.sourceImage as string;
+            sourceInfo = getImagePathInfo(task.id, sourceImage);
+          }
+
+          archive.file(sourceInfo.absolutePath, {
+            name: `sources/${sourceInfo.name}${sourceInfo.extension}`,
+          });
+
+          const targetPath = fps
+            ? await convertVideo({
+                inputPath: targetInfo.absolutePath,
+                fps,
+                crf,
+                preset,
+              })
+            : targetInfo.absolutePath;
+          archive.file(targetPath, {
+            name: `targets/${sourceInfo.name}${targetInfo.extension}`,
+          });
+          archive.append(applyAffixes(itemData.instruction, prefix, suffix), {
+            name: `instructions/${sourceInfo.name}.txt`,
+          });
+        }
+      })
+      .exhaustive();
+
+    archive.finalize();
+
+    const zipBuffer = await zipPromise;
+    const filename = `export-${task.name}-${Date.now()}.zip`;
+
+    return new NextResponse(zipBuffer, {
+      status: 200,
+      headers: {
+        "Content-Type": "application/zip",
+        "Content-Length": zipBuffer.length.toString(),
+        "Content-Disposition": `attachment; filename="${filename}"`,
+      },
+    });
+  } finally {
+    // Clean up temp directory after processing
+    if (existsSync(tempDir)) {
+      await rm(tempDir, { recursive: true, force: true });
+    }
+  }
 }

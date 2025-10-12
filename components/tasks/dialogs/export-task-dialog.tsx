@@ -15,10 +15,12 @@ import {
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { useState } from "react";
 import { useExportTask, useUpdateTaskSettings } from "@/lib/queries/use-task";
 import { Task } from "@/lib/types";
+import { useLocalStorage } from "usehooks-ts";
 
 export function ExportTaskDialog({
   task,
@@ -40,6 +42,11 @@ export function ExportTaskDialog({
   const [prefix, setPrefix] = useState<string>(task.prefix || "");
   const [suffix, setSuffix] = useState<string>(task.suffix || "");
 
+  const [useFirstFrame, setUseFirstFrame] = useLocalStorage<boolean>(
+    "useFirstFrame",
+    true
+  );
+
   const { mutateAsync: exportTask } = useExportTask();
   const { mutate: updateTaskSettings } = useUpdateTaskSettings();
 
@@ -58,6 +65,7 @@ export function ExportTaskDialog({
         fps: selectedFps,
         crf,
         preset,
+        useFirstFrame,
       }),
       {
         loading: "Exporting...",
@@ -74,7 +82,7 @@ export function ExportTaskDialog({
         </DialogHeader>
 
         <div className="grid grid-cols-2 gap-2">
-          <div className="space-y-2">
+          <div className="space-y-1">
             <Label>Prefix</Label>
             <Input
               placeholder="Optional prefix"
@@ -84,7 +92,7 @@ export function ExportTaskDialog({
             />
           </div>
 
-          <div className="space-y-2">
+          <div className="space-y-1">
             <Label>Suffix</Label>
             <Input
               placeholder="Optional suffix"
@@ -93,9 +101,11 @@ export function ExportTaskDialog({
               onBlur={() => handleAffixChanged("suffix")}
             />
           </div>
+        </div>
 
-          {isVideoTask && (
-            <>
+        {isVideoTask && (
+          <div className="flex flex-col gap-3">
+            <div className="space-y-1">
               <Label>FPS</Label>
               <Select
                 value={selectedFps ? String(selectedFps) : "original"}
@@ -116,68 +126,81 @@ export function ExportTaskDialog({
                   ))}
                 </SelectContent>
               </Select>
+            </div>
 
-              {selectedFps && (
-                <>
-                  <div className="space-y-2">
-                    <Label>
-                      CRF
-                      <span className="text-xs text-muted-foreground">
-                        (Lower CRF, higher quality, larger file sizes, range:
-                        0-50)
-                      </span>
-                    </Label>
+            {selectedFps && (
+              <>
+                <div className="space-y-1">
+                  <Label>
+                    CRF
+                    <span className="text-xs text-muted-foreground">
+                      (Lower CRF, higher quality, larger file sizes, range:
+                      0-50)
+                    </span>
+                  </Label>
 
-                    <Input
-                      type="number"
-                      className="w-20"
-                      min={0}
-                      max={50}
-                      step={1}
-                      value={crf}
-                      onChange={(e) => setCrf(Number(e.target.value))}
-                      onBlur={() => {
-                        if (crf < 0) setCrf(0);
-                        if (crf > 50) setCrf(50);
-                      }}
-                    />
-                  </div>
+                  <Input
+                    type="number"
+                    className="w-20"
+                    min={0}
+                    max={50}
+                    step={1}
+                    value={crf}
+                    onChange={(e) => setCrf(Number(e.target.value))}
+                    onBlur={() => {
+                      if (crf < 0) setCrf(0);
+                      if (crf > 50) setCrf(50);
+                    }}
+                  />
+                </div>
 
-                  <div className="space-y-2">
-                    <Label>
-                      Preset
-                      <span className="text-xs text-muted-foreground">
-                        (Faster conversion preset, larger file sizes)
-                      </span>
-                    </Label>
-                    <Select value={preset} onValueChange={setPreset}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="fast" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {[
-                          "ultrafast",
-                          "superfast",
-                          "veryfast",
-                          "faster",
-                          "fast",
-                          "medium",
-                          "slow",
-                          "slower",
-                          "veryslow",
-                        ].map((p) => (
-                          <SelectItem key={p} value={p}>
-                            {p}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </>
-              )}
-            </>
-          )}
-        </div>
+                <div className="space-y-1">
+                  <Label>
+                    Preset
+                    <span className="text-xs text-muted-foreground">
+                      (Faster conversion preset, larger file sizes)
+                    </span>
+                  </Label>
+                  <Select value={preset} onValueChange={setPreset}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="fast" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {[
+                        "ultrafast",
+                        "superfast",
+                        "veryfast",
+                        "faster",
+                        "fast",
+                        "medium",
+                        "slow",
+                        "slower",
+                        "veryslow",
+                      ].map((p) => (
+                        <SelectItem key={p} value={p}>
+                          {p}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </>
+            )}
+          </div>
+        )}
+
+        {task.type === "image-to-video" && (
+          <div className="flex items-center gap-2">
+            <Switch
+              id="use-first-frame"
+              checked={useFirstFrame}
+              onCheckedChange={setUseFirstFrame}
+            />
+            <Label htmlFor="use-first-frame" className="flex-1">
+              Use first frame as source image
+            </Label>
+          </div>
+        )}
 
         <DialogFooter>
           <Button
