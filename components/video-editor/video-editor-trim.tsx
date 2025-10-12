@@ -10,7 +10,7 @@ export type TrimRange = {
   end: number;
 };
 
-const clamp = (v: number, min: number, max: number) =>
+export const clamp = (v: number, min: number, max: number) =>
   Math.min(Math.max(v, min), max);
 
 const formatTime = (s: number) => {
@@ -48,7 +48,6 @@ export function VideoEditorTrim({
   onSelectedRangeChanged: (id: string | null) => void;
 }) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
-  const timelineRef = useRef<HTMLDivElement | null>(null);
 
   const [duration, setDuration] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
@@ -222,175 +221,50 @@ export function VideoEditorTrim({
     }
   };
 
-  // Timeline interactions
-  type DragType = "none" | "left" | "right" | "scrub" | "move";
-  const dragRef = useRef<{
-    type: DragType;
-    wasPlaying: boolean;
-    rangeId?: string;
-    initialTime?: number;
-    originalStart?: number;
-    originalEnd?: number;
-  }>({
-    type: "none",
-    wasPlaying: false,
-  });
-
-  const getTimeFromClientX = (clientX: number) => {
-    const el = timelineRef.current;
-    if (!el || duration <= 0) return 0;
-
-    const rect = el.getBoundingClientRect();
-    const ratio = clamp((clientX - rect.left) / rect.width, 0, 1);
-    return ratio * duration;
-  };
-
-  const onGlobalPointerMove = useCallback(
-    (e: PointerEvent) => {
-      const t = dragRef.current.type;
-      if (t === "none") return;
-
-      const time = getTimeFromClientX(e.clientX);
-
-      if (t === "scrub") {
-        const clamped = clamp(time, 0, duration);
-        const v = videoRef.current;
-        if (v) v.currentTime = clamped;
-        setCurrentTime(clamped);
-        return;
-      }
-
-      if (t === "left") {
-        commitStart(time);
-        return;
-      }
-
-      if (t === "right") {
-        commitEnd(time);
-        return;
-      }
-
-      if (t === "move") {
-        const { rangeId, initialTime, originalStart, originalEnd } =
-          dragRef.current;
-        if (
-          !rangeId ||
-          initialTime === undefined ||
-          originalStart === undefined ||
-          originalEnd === undefined
-        )
-          return;
-
-        const delta = time - initialTime;
-        const rangeLength = originalEnd - originalStart;
-        const newStart = clamp(
-          originalStart + delta,
-          0,
-          duration - rangeLength
-        );
-        const newEnd = newStart + rangeLength;
-
-        const updated = ranges.map((r) =>
-          r.id === rangeId ? { ...r, start: newStart, end: newEnd } : r
-        );
-        onRangesChanged(updated);
-        return;
-      }
-    },
-    [duration, commitStart, commitEnd, ranges, onRangesChanged]
-  );
-
-  const onGlobalPointerUp = useCallback(() => {
-    const { type, wasPlaying } = dragRef.current;
-    if (type === "scrub") {
-      // Resume if was playing before scrub
-      const v = videoRef.current;
-      if (wasPlaying && v && v.paused) {
-        // Only resume if playhead is within the selection
-        const t = v.currentTime;
-        if (
-          selectedRange &&
-          t >= selectedRange.start &&
-          t < selectedRange.end
-        ) {
-          v.play().catch(() => {});
-          setIsPlaying(true);
-        }
-      }
-    }
-    dragRef.current.type = "none";
-    dragRef.current.wasPlaying = false;
-    dragRef.current.rangeId = undefined;
-    window.removeEventListener("pointermove", onGlobalPointerMove);
-    window.removeEventListener("pointerup", onGlobalPointerUp);
-  }, [onGlobalPointerMove, selectedRange]);
-
-  const beginDrag = (type: DragType, clientX?: number, rangeId?: string) => {
-    const initialTime =
-      clientX !== undefined ? getTimeFromClientX(clientX) : undefined;
-    const range = rangeId ? ranges.find((r) => r.id === rangeId) : undefined;
-
-    dragRef.current = {
-      type,
-      wasPlaying: isPlaying,
-      rangeId,
-      initialTime,
-      originalStart: range?.start,
-      originalEnd: range?.end,
-    };
-
-    // Pause while scrubbing/moving for precision
-    if ((type === "scrub" || type === "move") && isPlaying) {
-      const v = videoRef.current;
-      v?.pause();
-      setIsPlaying(false);
-    }
-    window.addEventListener("pointermove", onGlobalPointerMove);
-    window.addEventListener("pointerup", onGlobalPointerUp);
-
-    // If click-to-seek
-    if (type === "scrub" && typeof clientX === "number") {
-      const time = getTimeFromClientX(clientX);
+  // Timeline callbacks
+  const wasPlayingRef = useRef(false);
+  const handleSeek = useCallback(
+    (time: number) => {
       const clamped = clamp(time, 0, duration);
       const v = videoRef.current;
       if (v) v.currentTime = clamped;
       setCurrentTime(clamped);
-    }
-  };
+    },
+    [duration]
+  );
 
-  const onTrackPointerDown: React.PointerEventHandler<HTMLDivElement> = (e) => {
-    // If pressed not primary button, ignore
-    if (e.button !== 0) return;
+  const handleInteractionStart = useCallback(
+    (type: "left" | "right" | "scrub" | "move") => {
+      // Pause while scrubbing/moving for precision
+      if ((type === "scrub" || type === "move") && isPlaying) {
+        wasPlayingRef.current = true;
+        const v = videoRef.current;
+        v?.pause();
+        setIsPlaying(false);
+      } else {
+        wasPlayingRef.current = false;
+      }
+    },
+    [isPlaying]
+  );
 
-    // Don't deselect if there's only one range
-    if (ranges.length > 1) {
-      onSelectedRangeChanged(null);
-    }
-    (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
-    beginDrag("scrub", e.clientX);
-  };
-
-  const onHandlePointerDown = (
-    e: React.PointerEvent<HTMLDivElement>,
-    type: "left" | "right",
-    rangeId: string
-  ) => {
-    if (e.button !== 0) return;
-    e.stopPropagation();
-    // Select the range when dragging its handle
-    onSelectedRangeChanged(rangeId);
-    beginDrag(type, undefined, rangeId);
-  };
-
-  const onRangeClick = (
-    e: React.PointerEvent<HTMLDivElement>,
-    rangeId: string
-  ) => {
-    // Select the range
-    onSelectedRangeChanged(rangeId);
-    // Always start move drag when clicking a range
-    beginDrag("move", e.clientX, rangeId);
-  };
+  const handleInteractionEnd = useCallback(
+    async (type: "left" | "right" | "scrub" | "move") => {
+      if (!wasPlayingRef.current) return;
+      const v = videoRef.current;
+      if (!v) return;
+      const t = v.currentTime;
+      // Only resume if playhead is within the selection
+      if (selectedRange && t >= selectedRange.start && t < selectedRange.end) {
+        try {
+          await v.play();
+          setIsPlaying(true);
+        } catch {}
+      }
+      wasPlayingRef.current = false;
+    },
+    [selectedRange]
+  );
 
   const handleStartBlur = () => {
     const parsed = parseMMSS(startText);
@@ -411,9 +285,9 @@ export function VideoEditorTrim({
   };
 
   return (
-    <div className="container mx-auto flex flex-col items-center gap-4 py-4">
+    <div className="container mx-auto flex flex-col items-center gap-2 py-4">
       {/* Video */}
-      <div className="border rounded-sm shadow">
+      <div className="border rounded-sm shadow mb-2">
         <video
           ref={videoRef}
           src={videoSrc}
@@ -446,14 +320,16 @@ export function VideoEditorTrim({
 
       {/* Timeline */}
       <VideoEditorTrimTimeline
-        ref={timelineRef}
         ranges={ranges}
         selectedRangeId={selectedRangeId}
         currentTime={currentTime}
         duration={duration}
-        onTrackPointerDown={onTrackPointerDown}
-        onRangeClick={onRangeClick}
-        onHandlePointerDown={onHandlePointerDown}
+        minRange={minRange}
+        onSeek={handleSeek}
+        onRangesChanged={onRangesChanged}
+        onSelectedRangeChanged={onSelectedRangeChanged}
+        onInteractionStart={handleInteractionStart}
+        onInteractionEnd={handleInteractionEnd}
       />
     </div>
   );
