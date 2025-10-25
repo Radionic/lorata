@@ -7,13 +7,10 @@ import { ImageEditorCropToolbar } from "./image-editor-crop-toolbar";
 import { useLocalStorage } from "usehooks-ts";
 import { useContainerViewport } from "@/lib/hooks/use-container-viewport";
 import { computeFitScale } from "@/lib/fit";
-
-export interface ImageEditorCropRef {
-  getImageBlob: () => Promise<Blob | undefined | null>;
-}
+import { ImageEditorRef } from "./image-editor";
 
 export const ImageEditorCrop = forwardRef<
-  ImageEditorCropRef,
+  ImageEditorRef,
   {
     imageEl: HTMLImageElement;
   }

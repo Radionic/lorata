@@ -1,13 +1,18 @@
 import { ToggleGroup } from "@/components/ui/toggle-group";
 import { ToggleGroupItem } from "@/components/ui/toggle-group";
-import { Brush, Copy, Crop, Save, X } from "lucide-react";
+import { Brush, Copy, Crop, Pentagon, Save, X } from "lucide-react";
 import { useRef } from "react";
-import { ImageEditorDraw, ImageEditorDrawRef } from "./image-editor-draw";
+import { ImageEditorDraw } from "./image-editor-draw";
 import { Button } from "../ui/button";
 import { toast } from "sonner";
-import { ImageEditorCrop, ImageEditorCropRef } from "./image-editor-crop";
+import { ImageEditorCrop } from "./image-editor-crop";
+import { ImageEditorPolygon } from "./image-editor-polygon";
 import { useLocalStorage } from "usehooks-ts";
 import { useHotkeys } from "react-hotkeys-hook";
+
+export interface ImageEditorRef {
+  getImageBlob: () => Promise<Blob | undefined | null>;
+}
 
 export function ImageEditor({
   imageEl,
@@ -20,11 +25,11 @@ export function ImageEditor({
   onClose?: () => void;
   onSave?: (newImage: File) => void;
 }) {
-  const [tool, setTool] = useLocalStorage<"draw" | "crop">(
+  const [tool, setTool] = useLocalStorage<"draw" | "polygon" | "crop">(
     "image-editor-tool",
     "draw"
   );
-  const editorRef = useRef<ImageEditorDrawRef | ImageEditorCropRef>(null);
+  const editorRef = useRef<ImageEditorRef>(null);
 
   const handleSaveImage = async () => {
     const blob = await editorRef.current?.getImageBlob();
@@ -48,15 +53,22 @@ export function ImageEditor({
     <div className="flex flex-col h-full">
       <div className="flex items-center gap-2 px-4 py-3 border-b bg-background">
         <ToggleGroup
+          className="w-72"
           type="single"
           variant="outline"
           size="sm"
           value={tool}
-          onValueChange={(value) => setTool(value as "draw" | "crop")}
+          onValueChange={(value) =>
+            setTool(value as "draw" | "crop" | "polygon")
+          }
         >
           <ToggleGroupItem value="draw" className="gap-2">
             <Brush className="h-4 w-4" />
             Draw
+          </ToggleGroupItem>
+          <ToggleGroupItem value="polygon" className="gap-2">
+            <Pentagon className="h-4 w-4" />
+            Polygon
           </ToggleGroupItem>
           <ToggleGroupItem value="crop" className="gap-2">
             <Crop className="h-4 w-4" />
@@ -72,7 +84,11 @@ export function ImageEditor({
             className="gap-2 select-none"
           >
             <Save className="h-4 w-4" />
-            {tool === "draw" ? "Save Drawing" : "Crop Image"}
+            {tool === "draw"
+              ? "Save Drawing"
+              : tool === "crop"
+              ? "Crop Image"
+              : "Save Polygon"}
           </Button>
 
           <Button
@@ -100,6 +116,10 @@ export function ImageEditor({
       <div className="flex-1">
         {tool === "draw" && (
           <ImageEditorDraw ref={editorRef} imageEl={imageEl} />
+        )}
+
+        {tool === "polygon" && (
+          <ImageEditorPolygon ref={editorRef} imageEl={imageEl} />
         )}
 
         {tool === "crop" && (

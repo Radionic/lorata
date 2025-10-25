@@ -16,6 +16,7 @@ import { useDrawingSettings } from "@/lib/hooks/image-editor/drawing/use-drawing
 import { ImageEditorDrawToolbar } from "./image-editor-draw-toolbar";
 import { useContainerViewport } from "@/lib/hooks/use-container-viewport";
 import { computeFitScale } from "@/lib/fit";
+import { ImageEditorRef } from "./image-editor";
 
 export interface DrawingData {
   id: string;
@@ -25,12 +26,8 @@ export interface DrawingData {
   tool: "pen" | "eraser";
 }
 
-export interface ImageEditorDrawRef {
-  getImageBlob: () => Promise<Blob | undefined | null>;
-}
-
 export const ImageEditorDraw = forwardRef<
-  ImageEditorDrawRef,
+  ImageEditorRef,
   {
     imageEl: HTMLImageElement;
   }
