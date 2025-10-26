@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 export function InstructionInput({
   taskId,
   itemId,
+  taskType,
   hasVideo,
   title,
   description,
@@ -18,6 +19,7 @@ export function InstructionInput({
 }: {
   taskId: string;
   itemId: string;
+  taskType?: string;
   hasVideo?: boolean;
   title: string;
   description: string;
@@ -57,6 +59,7 @@ export function InstructionInput({
         <GenerateInstructionDialog
           taskId={taskId}
           itemId={itemId}
+          taskType={taskType}
           hasVideo={hasVideo}
           open={aiDialogOpen}
           onOpenChange={setAiDialogOpen}

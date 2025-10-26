@@ -67,6 +67,7 @@ export function TaskActionButtons({ task }: { task: Task }) {
       {generateDialogOpen && (
         <GenerateInstructionDialog
           taskId={task.id}
+          taskType={task.type}
           hasVideo={isVideoTask}
           open={generateDialogOpen}
           onOpenChange={setGenerateDialogOpen}

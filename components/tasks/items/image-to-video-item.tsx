@@ -161,6 +161,7 @@ export function ImageToVideoItem({
             key={item.data.instruction}
             taskId={taskId}
             itemId={item.id}
+            taskType="image-to-video"
             title="Description"
             description="Describe the video..."
             defaultValue={item.data.instruction || undefined}

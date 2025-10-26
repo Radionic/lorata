@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { useLocalStorage } from "usehooks-ts";
 import { useAICaptioning } from "@/lib/queries/use-ai";
 import { Label } from "@/components/ui/label";
-import { VideoOptions } from "@/app/api/ai/route";
+import { VideoOptions, MediaSelection } from "@/app/api/ai/route";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Prompt, PromptEditor } from "../prompt-editor";
@@ -19,6 +19,7 @@ import { Help } from "@/components/help";
 export function GenerateInstructionDialog({
   taskId,
   itemId,
+  taskType,
   hasVideo,
   open,
   onOpenChange,
@@ -26,6 +27,7 @@ export function GenerateInstructionDialog({
 }: {
   taskId: string;
   itemId?: string;
+  taskType?: string;
   hasVideo?: boolean;
   open: boolean;
   onOpenChange?: (open: boolean) => void;
@@ -69,6 +71,20 @@ export function GenerateInstructionDialog({
   const [overwriteInstruction, setOverwriteInstruction] =
     useLocalStorage<boolean>("generate-instruction-overwrite", false);
 
+  const [mediaSelection, setMediaSelection] = useLocalStorage<MediaSelection>(
+    "generate-instruction-media-selection",
+    {
+      // For image-editing tasks
+      sourceImage1: true,
+      sourceImage2: true,
+      sourceImage3: true,
+      targetImage: true,
+      // For image-to-video tasks
+      sourceImage: true,
+      targetVideo: true,
+    }
+  );
+
   const { mutateAsync: generateInstruction, isLoading } = useAICaptioning();
 
   const onSubmit = async () => {
@@ -84,6 +100,7 @@ export function GenerateInstructionDialog({
       itemId,
       overwriteInstruction: !itemId ? overwriteInstruction : undefined,
       videoOptions: hasVideo ? videoOptions : undefined,
+      mediaSelection,
     });
 
     onOpenChange?.(false);
@@ -106,6 +123,95 @@ export function GenerateInstructionDialog({
             onSelectedChange={(id) => setSelectedPromptId(id)}
           />
         </div>
+
+        {(taskType === "image-editing" || taskType === "image-to-video") && (
+          <div className="space-y-2">
+            <Label>Input Media</Label>
+            <div className="space-y-2">
+              {taskType === "image-editing" && (
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="flex items-center gap-2">
+                    <Switch
+                      checked={mediaSelection.sourceImage1}
+                      onCheckedChange={(checked) =>
+                        setMediaSelection({
+                          ...mediaSelection,
+                          sourceImage1: checked,
+                        })
+                      }
+                    />
+                    <Label>Source Image 1</Label>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Switch
+                      checked={mediaSelection.sourceImage2}
+                      onCheckedChange={(checked) =>
+                        setMediaSelection({
+                          ...mediaSelection,
+                          sourceImage2: checked,
+                        })
+                      }
+                    />
+                    <Label>Source Image 2</Label>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Switch
+                      checked={mediaSelection.sourceImage3}
+                      onCheckedChange={(checked) =>
+                        setMediaSelection({
+                          ...mediaSelection,
+                          sourceImage3: checked,
+                        })
+                      }
+                    />
+                    <Label>Source Image 3</Label>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Switch
+                      checked={mediaSelection.targetImage}
+                      onCheckedChange={(checked) =>
+                        setMediaSelection({
+                          ...mediaSelection,
+                          targetImage: checked,
+                        })
+                      }
+                    />
+                    <Label>Target Image</Label>
+                  </div>
+                </div>
+              )}
+
+              {taskType === "image-to-video" && (
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="flex items-center gap-2">
+                    <Switch
+                      checked={mediaSelection.sourceImage}
+                      onCheckedChange={(checked) =>
+                        setMediaSelection({
+                          ...mediaSelection,
+                          sourceImage: checked,
+                        })
+                      }
+                    />
+                    <Label>Source Image</Label>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Switch
+                      checked={mediaSelection.targetVideo}
+                      onCheckedChange={(checked) =>
+                        setMediaSelection({
+                          ...mediaSelection,
+                          targetVideo: checked,
+                        })
+                      }
+                    />
+                    <Label>Target Video</Label>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {hasVideo && (
           <div className="space-y-2">
@@ -131,7 +237,7 @@ export function GenerateInstructionDialog({
                 onChange={(e) =>
                   setVideoOptions({
                     ...videoOptions,
-                    interval: parseInt(e.target.value),
+                    interval: parseFloat(e.target.value),
                   })
                 }
               />{" "}

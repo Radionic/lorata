@@ -22,6 +22,17 @@ export type VideoOptions = {
   interval: number;
 };
 
+export type MediaSelection = {
+  // For image-editing tasks
+  sourceImage1?: boolean;
+  sourceImage2?: boolean;
+  sourceImage3?: boolean;
+  targetImage?: boolean;
+  // For image-to-video tasks
+  sourceImage?: boolean;
+  targetVideo?: boolean;
+};
+
 export async function POST(req: Request) {
   const {
     prompt,
@@ -29,12 +40,14 @@ export async function POST(req: Request) {
     taskId,
     overwriteInstruction,
     videoOptions,
+    mediaSelection,
   }: {
     prompt: string;
     itemId?: string;
     taskId?: string;
     overwriteInstruction?: boolean;
     videoOptions?: VideoOptions;
+    mediaSelection?: MediaSelection;
   } = await req.json();
 
   if (!itemId && !taskId) {
@@ -98,10 +111,24 @@ export async function POST(req: Request) {
           it.data as ImageEditingTaskItemData;
         if (!sourceImages || !targetImage) return [];
 
+        const imagesToProcess: string[] = [];
+
+        // Add images based on selection
+        if (mediaSelection?.sourceImage1 && sourceImages[0]) {
+          imagesToProcess.push(sourceImages[0]);
+        }
+        if (mediaSelection?.sourceImage2 && sourceImages[1]) {
+          imagesToProcess.push(sourceImages[1]);
+        }
+        if (mediaSelection?.sourceImage3 && sourceImages[2]) {
+          imagesToProcess.push(sourceImages[2]);
+        }
+        if (mediaSelection?.targetImage) {
+          imagesToProcess.push(targetImage);
+        }
+
         const images = (
-          await Promise.all(
-            [...sourceImages, targetImage].map((i) => resolveMedia(i))
-          )
+          await Promise.all(imagesToProcess.map((i) => resolveMedia(i)))
         )
           .flat()
           .filter((s) => s !== undefined);
@@ -118,10 +145,13 @@ export async function POST(req: Request) {
       .with("image-to-video", async () => {
         const { sourceImage, targetVideo } =
           it.data as ImageToVideoTaskItemData;
-        const s = await resolveMedia(sourceImage);
-        const v = await resolveMedia(targetVideo, true);
-        if (s && v) return [...s, ...v];
-        return [];
+        const s = mediaSelection?.sourceImage
+          ? await resolveMedia(sourceImage)
+          : undefined;
+        const v = mediaSelection?.targetVideo
+          ? await resolveMedia(targetVideo, true)
+          : undefined;
+        return [...(s || []), ...(v || [])];
       })
       .exhaustive();
   };

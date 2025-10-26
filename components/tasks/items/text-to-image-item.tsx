@@ -130,6 +130,7 @@ export function TextToImageItem({
             key={item.data.instruction}
             taskId={taskId}
             itemId={item.id}
+            taskType="text-to-image"
             title="Description"
             description="Describe the image..."
             defaultValue={item.data.instruction || undefined}

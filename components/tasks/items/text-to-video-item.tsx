@@ -130,6 +130,7 @@ export function TextToVideoItem({
             key={item.data.instruction}
             taskId={taskId}
             itemId={item.id}
+            taskType="text-to-video"
             title="Description"
             description="Describe the video..."
             defaultValue={item.data.instruction || undefined}

@@ -1,4 +1,4 @@
-import { VideoOptions } from "@/app/api/ai/route";
+import { VideoOptions, MediaSelection } from "@/app/api/ai/route";
 import { useMutation } from "react-query";
 import { toast } from "sonner";
 import { useQueryClient } from "react-query";
@@ -13,12 +13,14 @@ export const useAICaptioning = () => {
       itemId,
       overwriteInstruction,
       videoOptions,
+      mediaSelection,
     }: {
       taskId: string;
       prompt: string;
       itemId?: string;
       overwriteInstruction?: boolean;
       videoOptions?: VideoOptions;
+      mediaSelection?: MediaSelection;
     }) => {
       const response = await fetch("/api/ai", {
         method: "POST",
@@ -28,6 +30,7 @@ export const useAICaptioning = () => {
           itemId,
           overwriteInstruction,
           videoOptions,
+          mediaSelection,
         }),
       });
       if (!response.ok) {
