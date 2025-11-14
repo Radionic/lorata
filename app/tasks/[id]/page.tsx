@@ -6,6 +6,7 @@ import { TaskItemsPage } from "@/components/tasks/task-items-page";
 import { TaskActionButtons } from "@/components/tasks/task-action-buttons";
 import { ArrowLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 
 export default function TaskPage() {
   const params = useParams();
@@ -13,6 +14,7 @@ export default function TaskPage() {
   const taskId = params.id as string;
 
   const { data: task } = useTask(taskId);
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
 
   return (
     <div className="min-h-screen bg-background container mx-auto py-8 px-4">
@@ -25,10 +27,16 @@ export default function TaskPage() {
           <h1 className="text-3xl font-bold">{task?.name}</h1>
         </div>
 
-        {task && <TaskActionButtons task={task} />}
+        {task && (
+          <TaskActionButtons
+            task={task}
+            selectedTags={selectedTags}
+            onTagsChange={setSelectedTags}
+          />
+        )}
       </div>
 
-      <TaskItemsPage task={task} />
+      <TaskItemsPage task={task} selectedTags={selectedTags} />
     </div>
   );
 }

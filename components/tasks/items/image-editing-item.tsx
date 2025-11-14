@@ -13,6 +13,7 @@ import {
   useSetItemLocked,
 } from "@/lib/queries/use-task-item";
 import { InstructionInput } from "../instruction-input";
+import { ItemTagsDisplay } from "./item-tags-display";
 import { cn } from "@/lib/utils";
 import { Label } from "@/components/ui/label";
 
@@ -146,14 +147,13 @@ export function ImageEditItem({
     >
       <div className="absolute top-2 right-2 flex gap-1 items-center">
         <Button
-          variant="outline"
+          variant="ghost"
           size="sm"
-          className="h-7 px-2"
+          className="h-8 w-8 text-muted-foreground"
           onClick={addSourceImageSlot}
           disabled={item.locked}
         >
-          <Plus className="h-3 w-3 mr-1" />
-          Add Source Image
+          <Plus className="h-4 w-4" />
         </Button>
 
         <Button
@@ -238,6 +238,8 @@ export function ImageEditItem({
           disabled={item.locked}
           onSettle={handleInstructionSettled}
         />
+
+        <ItemTagsDisplay tags={item.tags} />
       </CardContent>
     </Card>
   );

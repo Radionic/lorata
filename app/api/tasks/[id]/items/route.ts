@@ -1,7 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { TaskItem, taskItemsTable, tasksTable } from "@/lib/db/schema";
-import { eq, desc } from "drizzle-orm";
+import {
+  TaskItem,
+  taskItemsTable,
+  tasksTable,
+  tagsTable,
+  taskItemTagsTable,
+} from "@/lib/db/schema";
+import { eq, desc, exists } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { match } from "ts-pattern";
 
@@ -14,13 +20,60 @@ export async function GET(
     return NextResponse.json({ error: "Task ID is required" }, { status: 400 });
   }
 
-  const items = await db
-    .select()
-    .from(taskItemsTable)
-    .where(eq(taskItemsTable.taskId, taskId))
-    .orderBy(desc(taskItemsTable.createdAt));
+  const { searchParams } = new URL(request.url);
+  const tagsParam = searchParams.get("tags");
+  const filterTagNames = tagsParam
+    ? tagsParam
+        .split(",")
+        .map((t) => t.trim())
+        .filter(Boolean)
+    : [];
+  const items = await db.query.taskItemsTable.findMany({
+    where: (taskItem, { and, eq, inArray, sql }) => {
+      const baseCondition = eq(taskItem.taskId, taskId);
 
-  return NextResponse.json({ items });
+      if (filterTagNames.length === 0) {
+        return baseCondition;
+      }
+
+      // Build a single correlated subquery over the junction table
+      const tagsSubquery = db
+        .select({ taskItemId: taskItemTagsTable.taskItemId })
+        .from(taskItemTagsTable)
+        .innerJoin(tagsTable, eq(tagsTable.id, taskItemTagsTable.tagId))
+        .where(
+          and(
+            eq(taskItemTagsTable.taskItemId, taskItem.id),
+            inArray(tagsTable.name, filterTagNames)
+          )
+        )
+        .groupBy(taskItemTagsTable.taskItemId)
+        .having(
+          sql`COUNT(DISTINCT ${tagsTable.name}) = ${filterTagNames.length}`
+        );
+
+      return and(baseCondition, exists(tagsSubquery));
+    },
+    with: {
+      taskItemTags: {
+        with: {
+          tag: true,
+        },
+      },
+    },
+    orderBy: [desc(taskItemsTable.createdAt)],
+  });
+
+  return NextResponse.json({
+    items: items.map((item) => ({
+      ...item,
+      tags: item.taskItemTags.map((tt) => ({
+        id: tt.tag.id,
+        name: tt.tag.name,
+      })),
+      taskItemTags: undefined, // Remove nested structure
+    })),
+  });
 }
 
 export async function POST(

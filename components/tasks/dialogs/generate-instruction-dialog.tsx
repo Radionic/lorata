@@ -1,20 +1,14 @@
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
 import { useLocalStorage } from "usehooks-ts";
 import { useAICaptioning } from "@/lib/queries/use-ai";
 import { Label } from "@/components/ui/label";
 import { VideoOptions, MediaSelection } from "@/app/api/ai/route";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
-import { Prompt, PromptEditor } from "../prompt-editor";
+import { Prompt } from "../prompt-editor";
 import { toast } from "sonner";
 import { Help } from "@/components/help";
+import { PromptDialog } from "./prompt-dialog";
+import { MediaSelectionSection } from "./media-selection-section";
 
 export function GenerateInstructionDialog({
   taskId,
@@ -68,8 +62,10 @@ export function GenerateInstructionDialog({
     }
   );
 
-  const [overwriteInstruction, setOverwriteInstruction] =
-    useLocalStorage<boolean>("generate-instruction-overwrite", false);
+  const [overwrite, setOverwrite] = useLocalStorage<boolean>(
+    "generate-instruction-overwrite",
+    false
+  );
 
   const [mediaSelection, setMediaSelection] = useLocalStorage<MediaSelection>(
     "generate-instruction-media-selection",
@@ -98,7 +94,7 @@ export function GenerateInstructionDialog({
       taskId,
       prompt,
       itemId,
-      overwriteInstruction: !itemId ? overwriteInstruction : undefined,
+      overwrite: !itemId ? overwrite : undefined,
       videoOptions: hasVideo ? videoOptions : undefined,
       mediaSelection,
     });
@@ -108,163 +104,68 @@ export function GenerateInstructionDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
-        <DialogHeader>
-          <DialogTitle>Generate instruction</DialogTitle>
-        </DialogHeader>
+    <PromptDialog
+      open={open}
+      onOpenChange={onOpenChange}
+      title="Generate instruction"
+      prompts={prompts}
+      onPromptsChange={setPrompts}
+      selectedPromptId={selectedPromptId}
+      onSelectedPromptChange={setSelectedPromptId}
+      isSubmitting={isLoading}
+      submitLabel="Generate"
+      submittingLabel="Generating..."
+      onSubmit={onSubmit}
+    >
+      {(taskType === "image-editing" || taskType === "image-to-video") && (
+        <MediaSelectionSection
+          taskType={taskType}
+          mediaSelection={mediaSelection}
+          onMediaSelectionChange={setMediaSelection}
+          showTargetVideo
+        />
+      )}
 
+      {hasVideo && (
         <div className="space-y-2">
-          <Label>Prompt</Label>
-          <PromptEditor
-            prompts={prompts}
-            onPromptsChange={setPrompts}
-            selectedId={selectedPromptId}
-            onSelectedChange={(id) => setSelectedPromptId(id)}
-          />
+          <Label>Video Options</Label>
+          <div className="text-sm">
+            Extract{" "}
+            <Input
+              type="number"
+              className="w-14 h-8 inline mb-1"
+              value={videoOptions.numFrames}
+              onChange={(e) =>
+                setVideoOptions({
+                  ...videoOptions,
+                  numFrames: parseInt(e.target.value),
+                })
+              }
+            />{" "}
+            video frames for video captioning. Extract every{" "}
+            <Input
+              type="number"
+              className="w-14 h-8 inline"
+              value={videoOptions.interval}
+              onChange={(e) =>
+                setVideoOptions({
+                  ...videoOptions,
+                  interval: parseFloat(e.target.value),
+                })
+              }
+            />{" "}
+            seconds.
+          </div>
         </div>
+      )}
 
-        {(taskType === "image-editing" || taskType === "image-to-video") && (
-          <div className="space-y-2">
-            <Label>Input Media</Label>
-            <div className="space-y-2">
-              {taskType === "image-editing" && (
-                <div className="grid grid-cols-2 gap-2">
-                  <div className="flex items-center gap-2">
-                    <Switch
-                      checked={mediaSelection.sourceImage1}
-                      onCheckedChange={(checked) =>
-                        setMediaSelection({
-                          ...mediaSelection,
-                          sourceImage1: checked,
-                        })
-                      }
-                    />
-                    <Label>Source Image 1</Label>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Switch
-                      checked={mediaSelection.sourceImage2}
-                      onCheckedChange={(checked) =>
-                        setMediaSelection({
-                          ...mediaSelection,
-                          sourceImage2: checked,
-                        })
-                      }
-                    />
-                    <Label>Source Image 2</Label>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Switch
-                      checked={mediaSelection.sourceImage3}
-                      onCheckedChange={(checked) =>
-                        setMediaSelection({
-                          ...mediaSelection,
-                          sourceImage3: checked,
-                        })
-                      }
-                    />
-                    <Label>Source Image 3</Label>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Switch
-                      checked={mediaSelection.targetImage}
-                      onCheckedChange={(checked) =>
-                        setMediaSelection({
-                          ...mediaSelection,
-                          targetImage: checked,
-                        })
-                      }
-                    />
-                    <Label>Target Image</Label>
-                  </div>
-                </div>
-              )}
-
-              {taskType === "image-to-video" && (
-                <div className="grid grid-cols-2 gap-2">
-                  <div className="flex items-center gap-2">
-                    <Switch
-                      checked={mediaSelection.sourceImage}
-                      onCheckedChange={(checked) =>
-                        setMediaSelection({
-                          ...mediaSelection,
-                          sourceImage: checked,
-                        })
-                      }
-                    />
-                    <Label>Source Image</Label>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Switch
-                      checked={mediaSelection.targetVideo}
-                      onCheckedChange={(checked) =>
-                        setMediaSelection({
-                          ...mediaSelection,
-                          targetVideo: checked,
-                        })
-                      }
-                    />
-                    <Label>Target Video</Label>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {hasVideo && (
-          <div className="space-y-2">
-            <Label>Video Options</Label>
-            <div className="text-sm">
-              Extract{" "}
-              <Input
-                type="number"
-                className="w-14 h-8 inline mb-1"
-                value={videoOptions.numFrames}
-                onChange={(e) =>
-                  setVideoOptions({
-                    ...videoOptions,
-                    numFrames: parseInt(e.target.value),
-                  })
-                }
-              />{" "}
-              video frames for video captioning. Extract every{" "}
-              <Input
-                type="number"
-                className="w-14 h-8 inline"
-                value={videoOptions.interval}
-                onChange={(e) =>
-                  setVideoOptions({
-                    ...videoOptions,
-                    interval: parseFloat(e.target.value),
-                  })
-                }
-              />{" "}
-              seconds.
-            </div>
-          </div>
-        )}
-
-        {!itemId && (
-          <div className="flex items-center gap-2">
-            <Switch
-              checked={overwriteInstruction}
-              onCheckedChange={setOverwriteInstruction}
-            />
-            <Label>Overwrite existing instructions</Label>
-            <Help>This doesn't affect locked items</Help>
-          </div>
-        )}
-
-        <DialogFooter>
-          <DialogFooter>
-            <Button type="submit" onClick={onSubmit} disabled={isLoading}>
-              {isLoading ? "Generating..." : "Generate"}
-            </Button>
-          </DialogFooter>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+      {!itemId && (
+        <div className="flex items-center gap-2">
+          <Switch checked={overwrite} onCheckedChange={setOverwrite} />
+          <Label>Overwrite existing instructions</Label>
+          <Help>This doesn't affect locked items</Help>
+        </div>
+      )}
+    </PromptDialog>
   );
 }

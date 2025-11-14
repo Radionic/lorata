@@ -11,6 +11,7 @@ import {
   useSetItemLocked,
 } from "@/lib/queries/use-task-item";
 import { InstructionInput } from "../instruction-input";
+import { ItemTagsDisplay } from "./item-tags-display";
 import { cn } from "@/lib/utils";
 
 export function TextToImageItem({
@@ -137,6 +138,8 @@ export function TextToImageItem({
             disabled={item.locked}
             onSettle={handleInstructionSettled}
           />
+
+          <ItemTagsDisplay tags={item.tags} />
         </div>
       </CardContent>
     </Card>

@@ -4,7 +4,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectTrigger } from "@/components/ui/select";
 import { Check, Plus, Trash } from "lucide-react";
 import { Separator } from "../ui/separator";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 export interface Prompt {
   id: string;

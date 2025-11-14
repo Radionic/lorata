@@ -5,7 +5,9 @@ export interface Task extends DBTask {
   itemCount: number;
 }
 
-export interface TaskItem extends DBTaskItem {}
+export interface TaskItem extends DBTaskItem {
+  tags?: Array<{ id: string; name: string }>;
+}
 
 export interface TextToImageTaskItemData {
   instruction: string | null;

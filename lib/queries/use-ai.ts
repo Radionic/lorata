@@ -11,14 +11,14 @@ export const useAICaptioning = () => {
       taskId,
       prompt,
       itemId,
-      overwriteInstruction,
+      overwrite,
       videoOptions,
       mediaSelection,
     }: {
       taskId: string;
       prompt: string;
       itemId?: string;
-      overwriteInstruction?: boolean;
+      overwrite?: boolean;
       videoOptions?: VideoOptions;
       mediaSelection?: MediaSelection;
     }) => {
@@ -28,7 +28,7 @@ export const useAICaptioning = () => {
           taskId,
           prompt,
           itemId,
-          overwriteInstruction,
+          overwrite,
           videoOptions,
           mediaSelection,
         }),
@@ -43,6 +43,45 @@ export const useAICaptioning = () => {
     },
     onError: () => {
       toast.error("Failed to generate caption");
+    },
+  });
+};
+
+export const useAutoTagging = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      taskId,
+      prompt,
+      overwrite,
+      mediaSelection,
+    }: {
+      taskId: string;
+      prompt: string;
+      overwrite?: boolean;
+      mediaSelection?: MediaSelection;
+    }) => {
+      const response = await fetch("/api/ai", {
+        method: "POST",
+        body: JSON.stringify({
+          taskId,
+          prompt,
+          overwrite,
+          mediaSelection,
+          operation: "tag",
+        }),
+      });
+      if (!response.ok) {
+        throw new Error("Failed to auto-tag images");
+      }
+    },
+    onSettled: (_, __, { taskId }) => {
+      toast.success("Auto-tagging completed");
+      queryClient.invalidateQueries(["taskItems", taskId]);
+    },
+    onError: () => {
+      toast.error("Failed to auto-tag images");
     },
   });
 };

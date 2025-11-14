@@ -11,6 +11,7 @@ import {
   useSetItemLocked,
 } from "@/lib/queries/use-task-item";
 import { InstructionInput } from "../instruction-input";
+import { ItemTagsDisplay } from "./item-tags-display";
 import { cn } from "@/lib/utils";
 
 export function TextToVideoItem({
@@ -138,6 +139,8 @@ export function TextToVideoItem({
             onSettle={handleInstructionSettled}
             hasVideo
           />
+
+          <ItemTagsDisplay tags={item.tags} />
         </div>
       </CardContent>
     </Card>

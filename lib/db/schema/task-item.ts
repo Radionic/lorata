@@ -7,6 +7,7 @@ import {
   ImageToVideoTaskItemData,
   ImageEditingTaskItemData,
 } from "@/lib/types";
+import { taskItemTagsTable } from "./tag";
 
 export const taskItemsTable = sqliteTable(
   "task_items",
@@ -36,11 +37,15 @@ export const taskItemsTable = sqliteTable(
   })
 );
 
-export const taskItemsRelations = relations(taskItemsTable, ({ one }) => ({
-  task: one(tasksTable, {
-    fields: [taskItemsTable.taskId],
-    references: [tasksTable.id],
-  }),
-}));
+export const taskItemsRelations = relations(
+  taskItemsTable,
+  ({ one, many }) => ({
+    task: one(tasksTable, {
+      fields: [taskItemsTable.taskId],
+      references: [tasksTable.id],
+    }),
+    taskItemTags: many(taskItemTagsTable),
+  })
+);
 
 export type TaskItem = typeof taskItemsTable.$inferSelect;

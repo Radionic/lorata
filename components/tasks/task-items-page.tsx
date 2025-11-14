@@ -21,12 +21,18 @@ import { Info, X } from "lucide-react";
 import { useLocalStorage } from "usehooks-ts";
 import { Button } from "@/components/ui/button";
 
-export function TaskItemsPage({ task }: { task?: Task }) {
+export function TaskItemsPage({
+  task,
+  selectedTags = [],
+}: {
+  task?: Task;
+  selectedTags?: string[];
+}) {
   const router = useRouter();
   const params = useParams();
   const taskId = params.id as string;
 
-  const { data: items, isLoading, error } = useTaskItems(taskId);
+  const { data: items, isLoading, error } = useTaskItems(taskId, selectedTags);
   const [showI2VExportBanner, setShowI2VExportBanner] = useLocalStorage(
     "show-i2v-export-banner",
     true
@@ -69,6 +75,7 @@ export function TaskItemsPage({ task }: { task?: Task }) {
           </Button>
         </div>
       )}
+
       <div
         className={cn(
           "grid gap-6",

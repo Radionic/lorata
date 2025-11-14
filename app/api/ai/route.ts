@@ -1,9 +1,9 @@
 import { aiProvider } from "@/lib/ai";
 import { db } from "@/lib/db";
-import { taskItemsTable } from "@/lib/db/schema";
+import { taskItemsTable, tagsTable, taskItemTagsTable } from "@/lib/db/schema";
 import type { TaskItem } from "@/lib/db/schema";
 import { generateText } from "ai";
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { extractFrames } from "@/lib/video";
 import path from "path";
 import { existsSync } from "fs";
@@ -16,6 +16,7 @@ import {
   TextToVideoTaskItemData,
 } from "@/lib/types";
 import { NextResponse } from "next/server";
+import { nanoid } from "nanoid";
 
 export type VideoOptions = {
   numFrames: number;
@@ -38,16 +39,18 @@ export async function POST(req: Request) {
     prompt,
     itemId,
     taskId,
-    overwriteInstruction,
+    overwrite,
     videoOptions,
     mediaSelection,
+    operation,
   }: {
     prompt: string;
     itemId?: string;
     taskId?: string;
-    overwriteInstruction?: boolean;
+    overwrite?: boolean;
     videoOptions?: VideoOptions;
     mediaSelection?: MediaSelection;
+    operation?: "caption" | "tag";
   } = await req.json();
 
   if (!itemId && !taskId) {
@@ -161,38 +164,101 @@ export async function POST(req: Request) {
     if (!item) continue;
 
     const isLocked = item.locked;
-    const hasInstruction = !!item?.data?.instruction;
-    // For dataset-level generation, skip items with existing instruction unless overwriting.
-    // For single-item generation, always overwrite regardless of overwriteInstruction.
-    if (isLocked || (hasInstruction && !overwriteInstruction && !itemId)) {
-      continue;
+
+    if (operation === "caption") {
+      const hasInstruction = !!item?.data?.instruction;
+      // For dataset-level generation, skip items with existing instruction unless overwriting.
+      // For single-item generation, always overwrite regardless of overwrite setting.
+      if (isLocked || (hasInstruction && !overwrite && !itemId)) {
+        continue;
+      }
+    } else if (operation === "tag") {
+      const existingTags = await db
+        .select()
+        .from(taskItemTagsTable)
+        .where(eq(taskItemTagsTable.taskItemId, item.id));
+
+      const hasTags = existingTags.length > 0;
+      // Skip locked items or items with existing tags unless overwriting
+      if (isLocked || (hasTags && !overwrite)) {
+        continue;
+      }
+
+      if (overwrite && hasTags) {
+        await db
+          .delete(taskItemTagsTable)
+          .where(eq(taskItemTagsTable.taskItemId, item.id));
+      }
     }
 
     const base64Images: string[] = await getBase64ImagesForItem(item);
-    const imageParts = base64Images.map((image) => ({
-      type: "image" as const,
-      image,
-    }));
+    if (base64Images.length === 0) {
+      continue;
+    }
 
     const { text } = await generateText({
       model: aiProvider(process.env.OPENAI_API_MODEL!),
       messages: [
         {
           role: "user",
-          content: [{ type: "text", text: prompt }, ...imageParts],
+          content: [
+            { type: "text", text: prompt },
+            ...base64Images.map((image) => ({
+              type: "image" as const,
+              image,
+            })),
+          ],
         },
       ],
     });
 
-    await db
-      .update(taskItemsTable)
-      .set({
-        data: {
-          ...item.data,
-          instruction: text,
-        },
-      })
-      .where(eq(taskItemsTable.id, item.id));
+    if (operation === "caption") {
+      await db
+        .update(taskItemsTable)
+        .set({
+          data: {
+            ...item.data,
+            instruction: text,
+          },
+        })
+        .where(eq(taskItemsTable.id, item.id));
+    } else if (operation === "tag") {
+      const tagNames = text
+        .split(",")
+        .map((tag) => tag.trim())
+        .filter((tag) => tag.length > 0);
+
+      if (tagNames.length === 0) continue;
+
+      // Bulk upsert tags
+      await db
+        .insert(tagsTable)
+        .values(
+          tagNames.map((name) => ({
+            id: nanoid(),
+            name,
+            createdAt: new Date().toISOString(),
+          }))
+        )
+        .onConflictDoNothing();
+
+      // Fetch all tag IDs
+      const tags = await db
+        .select({ id: tagsTable.id, name: tagsTable.name })
+        .from(tagsTable)
+        .where(inArray(tagsTable.name, tagNames));
+
+      // Bulk insert junction table entries
+      await db
+        .insert(taskItemTagsTable)
+        .values(
+          tags.map((tag) => ({
+            taskItemId: item.id,
+            tagId: tag.id,
+          }))
+        )
+        .onConflictDoNothing();
+    }
   }
 
   return NextResponse.json({});
