@@ -1,6 +1,7 @@
 import { sqliteTable, text, primaryKey, index } from "drizzle-orm/sqlite-core";
 import { relations } from "drizzle-orm";
 import { taskItemsTable } from "./task-item";
+import { tasksTable } from "./task";
 
 export const tagsTable = sqliteTable("tags", {
   id: text("id").primaryKey(),
@@ -29,8 +30,26 @@ export const taskItemTagsTable = sqliteTable(
   })
 );
 
+export const taskTagsTable = sqliteTable(
+  "task_tags",
+  {
+    taskId: text("task_id")
+      .notNull()
+      .references(() => tasksTable.id, { onDelete: "cascade" }),
+    tagId: text("tag_id")
+      .notNull()
+      .references(() => tagsTable.id, { onDelete: "cascade" }),
+  },
+  (table) => ({
+    pk: primaryKey({ columns: [table.taskId, table.tagId] }),
+    taskIdIdx: index("task_tags_task_id_idx").on(table.taskId),
+    tagIdIdx: index("task_tags_tag_id_idx").on(table.tagId),
+  })
+);
+
 export const tagsRelations = relations(tagsTable, ({ many }) => ({
   taskItemTags: many(taskItemTagsTable),
+  taskTags: many(taskTagsTable),
 }));
 
 export const taskItemTagsRelations = relations(
@@ -49,3 +68,4 @@ export const taskItemTagsRelations = relations(
 
 export type Tag = typeof tagsTable.$inferSelect;
 export type TaskItemTag = typeof taskItemTagsTable.$inferSelect;
+export type TaskTag = typeof taskTagsTable.$inferSelect;

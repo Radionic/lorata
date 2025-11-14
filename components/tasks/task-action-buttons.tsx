@@ -13,7 +13,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { TaskTagFilter } from "@/components/tasks/task-tag-filter";
+import { TaskItemTagFilter } from "@/components/tasks/tags/task-item-tag-filter";
 
 export function TaskActionButtons({
   task,
@@ -49,7 +49,7 @@ export function TaskActionButtons({
           </Button>
         </PopoverTrigger>
         <PopoverContent align="start" className="p-0 w-[400px]">
-          <TaskTagFilter
+          <TaskItemTagFilter
             taskId={task.id}
             selectedTags={selectedTags}
             onTagsChange={(tags) => onTagsChange?.(tags)}

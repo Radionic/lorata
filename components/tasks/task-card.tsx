@@ -16,13 +16,15 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { RenameTaskDialog } from "@/components/tasks/dialogs/rename-task-dialog";
 import { DeleteTaskDialog } from "@/components/tasks/dialogs/delete-task-dialog";
+import { ManageTaskTagsDialog } from "@/components/tasks/dialogs/manage-task-tags-dialog";
 import { Task } from "@/lib/types";
 import { useState } from "react";
-import { Edit, FileImage, MoreVertical, Trash2 } from "lucide-react";
+import { Edit, FileImage, MoreVertical, Trash2, Tag } from "lucide-react";
 
 export function TaskCard({ task }: { task: Task }) {
   const [renameDialogOpen, setRenameDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [manageTagsDialogOpen, setManageTagsDialogOpen] = useState(false);
 
   return (
     <>
@@ -50,6 +52,15 @@ export function TaskCard({ task }: { task: Task }) {
                   >
                     <Edit className="mr-2 h-4 w-4" />
                     Rename
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setManageTagsDialogOpen(true);
+                    }}
+                  >
+                    <Tag className="mr-2 h-4 w-4" />
+                    Manage tags
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     onClick={(e) => {
@@ -87,6 +98,14 @@ export function TaskCard({ task }: { task: Task }) {
         <DeleteTaskDialog
           open={deleteDialogOpen}
           onOpenChange={setDeleteDialogOpen}
+          task={task}
+        />
+      )}
+
+      {manageTagsDialogOpen && (
+        <ManageTaskTagsDialog
+          open={manageTagsDialogOpen}
+          onOpenChange={setManageTagsDialogOpen}
           task={task}
         />
       )}

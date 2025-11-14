@@ -1,4 +1,4 @@
-import { useQuery } from "react-query";
+import { useMutation, useQuery, useQueryClient } from "react-query";
 import { toast } from "sonner";
 
 export interface TagWithCount {
@@ -7,11 +7,16 @@ export interface TagWithCount {
   count: number;
 }
 
-export const useTaskTags = (taskId: string) => {
+export interface TaskTag {
+  id: string;
+  name: string;
+}
+
+export const useTaskItemTags = (taskId: string) => {
   return useQuery<TagWithCount[], Error>({
-    queryKey: ["taskTags", taskId],
+    queryKey: ["taskItemTags", taskId],
     queryFn: async () => {
-      const response = await fetch(`/api/tasks/${taskId}/tags`);
+      const response = await fetch(`/api/tasks/${taskId}/items/tags`);
 
       if (!response.ok) {
         const error = await response.json();
@@ -23,5 +28,76 @@ export const useTaskTags = (taskId: string) => {
       return data.tags;
     },
     enabled: !!taskId,
+  });
+};
+
+export const useTaskTags = (taskId: string) => {
+  return useQuery<TaskTag[], Error>({
+    queryKey: ["taskTags", taskId],
+    queryFn: async () => {
+      const response = await fetch(`/api/tasks/${taskId}/tags`);
+
+      if (!response.ok) {
+        const error = await response.json();
+        toast.error(error.error || "Failed to fetch task tags");
+        return [];
+      }
+
+      const data = await response.json();
+      return data.tags;
+    },
+    enabled: !!taskId,
+  });
+};
+
+export const useUpdateTaskTags = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      taskId,
+      tagNames,
+    }: {
+      taskId: string;
+      tagNames: string[];
+    }) => {
+      const response = await fetch(`/api/tasks/${taskId}/tags`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ tags: tagNames }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        toast.error(error.error || "Failed to update task tags");
+        return false;
+      }
+
+      return true;
+    },
+    onSuccess: (_, { taskId }) => {
+      queryClient.invalidateQueries(["taskTags", taskId]);
+    },
+  });
+};
+
+// Aggregated list of task-level tags across all tasks
+export const useTaskTagList = () => {
+  return useQuery<TagWithCount[], Error>({
+    queryKey: ["taskTagList"],
+    queryFn: async () => {
+      const response = await fetch(`/api/tasks/tags`);
+
+      if (!response.ok) {
+        const error = await response.json();
+        toast.error(error.error || "Failed to fetch task tags");
+        return [];
+      }
+
+      const data = await response.json();
+      return data.tags;
+    },
   });
 };

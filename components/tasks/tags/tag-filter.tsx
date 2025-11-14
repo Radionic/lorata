@@ -1,24 +1,31 @@
 "use client";
 
 import { Badge } from "@/components/ui/badge";
-import { useTaskTags } from "@/lib/queries/use-tags";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { X } from "lucide-react";
-import { Button } from "@/components/ui/button";
 
-interface TaskTagFilterProps {
-  taskId: string;
+interface TagFilterTag {
+  id: string;
+  name: string;
+  count?: number;
+}
+
+interface TagFilterProps {
+  title: string;
+  tags?: TagFilterTag[];
+  isLoading: boolean;
   selectedTags: string[];
   onTagsChange: (tags: string[]) => void;
 }
 
-export function TaskTagFilter({
-  taskId,
+export function TagFilter({
+  title,
+  tags,
+  isLoading,
   selectedTags,
   onTagsChange,
-}: TaskTagFilterProps) {
-  const { data: tags, isLoading } = useTaskTags(taskId);
-
+}: TagFilterProps) {
   const toggleTag = (tagName: string) => {
     if (selectedTags.includes(tagName)) {
       onTagsChange(selectedTags.filter((t) => t !== tagName));
@@ -50,7 +57,7 @@ export function TaskTagFilter({
   return (
     <div className="space-y-3 p-4">
       <div className="flex items-center justify-between gap-2">
-        <p className="text-sm font-medium">Filter by tags</p>
+        <p className="text-sm font-medium">{title}</p>
         {selectedTags.length > 0 && (
           <Button
             variant="ghost"
@@ -76,7 +83,9 @@ export function TaskTagFilter({
               onClick={() => toggleTag(tag.name)}
             >
               <span>{tag.name}</span>
-              <span className="ml-1.5 text-xs opacity-70">({tag.count})</span>
+              {typeof tag.count === "number" && (
+                <span className="ml-1.5 text-xs opacity-70">({tag.count})</span>
+              )}
               {isSelected && (
                 <X className="ml-1 h-3 w-3 hover:bg-primary-foreground/20 rounded-sm" />
               )}

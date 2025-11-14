@@ -2,11 +2,18 @@ import { useQuery, useMutation, useQueryClient } from "react-query";
 import { Task } from "@/lib/types";
 import { toast } from "sonner";
 
-export const useTasks = () => {
+export const useTasks = (filterTags: string[] = []) => {
   return useQuery<Task[]>({
-    queryKey: ["tasks"],
+    queryKey: ["tasks", filterTags],
     queryFn: async () => {
-      const url = "/api/tasks";
+      const params = new URLSearchParams();
+      if (filterTags.length > 0) {
+        params.set("tags", filterTags.join(","));
+      }
+
+      const url = `/api/tasks${
+        params.toString() ? `?${params.toString()}` : ""
+      }`;
       const response = await fetch(url);
 
       if (!response.ok) {

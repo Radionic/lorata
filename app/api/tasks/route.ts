@@ -1,14 +1,50 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { count, desc, inArray } from "drizzle-orm";
+import { count, desc, inArray, sql, eq } from "drizzle-orm";
 import { nanoid } from "nanoid";
-import { taskItemsTable, tasksTable } from "@/lib/db/schema";
+import { taskItemsTable, tasksTable, taskTagsTable, tagsTable } from "@/lib/db/schema";
 
-export async function GET() {
-  const tasks = await db
-    .select()
-    .from(tasksTable)
-    .orderBy(desc(tasksTable.createdAt));
+export async function GET(request: NextRequest) {
+  const { searchParams } = new URL(request.url);
+  const tagsParam = searchParams.get("tags");
+  const filterTagNames = tagsParam
+    ? tagsParam
+        .split(",")
+        .map((t) => t.trim())
+        .filter(Boolean)
+    : [];
+
+  let tasks;
+
+  if (filterTagNames.length === 0) {
+    tasks = await db
+      .select()
+      .from(tasksTable)
+      .orderBy(desc(tasksTable.createdAt));
+  } else {
+    const taggedTasks = await db
+      .select({
+        taskId: taskTagsTable.taskId,
+        count: sql<number>`COUNT(DISTINCT ${tagsTable.name})`.as("count"),
+      })
+      .from(taskTagsTable)
+      .innerJoin(tagsTable, eq(tagsTable.id, taskTagsTable.tagId))
+      .where(inArray(tagsTable.name, filterTagNames))
+      .groupBy(taskTagsTable.taskId)
+      .having(sql`COUNT(DISTINCT ${tagsTable.name}) = ${filterTagNames.length}`);
+
+    const filteredTaskIds = taggedTasks.map((t) => t.taskId);
+
+    if (filteredTaskIds.length === 0) {
+      return NextResponse.json({ tasks: [] });
+    }
+
+    tasks = await db
+      .select()
+      .from(tasksTable)
+      .where(inArray(tasksTable.id, filteredTaskIds))
+      .orderBy(desc(tasksTable.createdAt));
+  }
   const taskIds = tasks.map((task) => task.id);
   const taskItemCounts = await db
     .select({
