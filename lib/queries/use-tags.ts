@@ -101,3 +101,62 @@ export const useTaskTagList = () => {
     },
   });
 };
+
+export const useTaskItemTagsForItem = (taskId: string, itemId: string) => {
+  return useQuery<TaskTag[], Error>({
+    queryKey: ["taskItemTags", taskId, itemId],
+    queryFn: async () => {
+      const response = await fetch(`/api/tasks/${taskId}/items/${itemId}/tags`);
+
+      if (!response.ok) {
+        const error = await response.json();
+        toast.error(error.error || "Failed to fetch item tags");
+        return [];
+      }
+
+      const data = await response.json();
+      return data.tags;
+    },
+    enabled: !!taskId && !!itemId,
+  });
+};
+
+export const useUpdateTaskItemTags = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      taskId,
+      itemId,
+      tagNames,
+    }: {
+      taskId: string;
+      itemId: string;
+      tagNames: string[];
+    }) => {
+      const response = await fetch(
+        `/api/tasks/${taskId}/items/${itemId}/tags`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ tags: tagNames }),
+        }
+      );
+
+      if (!response.ok) {
+        const error = await response.json();
+        toast.error(error.error || "Failed to update item tags");
+        return false;
+      }
+
+      return true;
+    },
+    onSuccess: (_, { taskId, itemId }) => {
+      queryClient.invalidateQueries(["taskItems", taskId]);
+      queryClient.invalidateQueries(["taskItemTags", taskId, itemId]);
+      queryClient.invalidateQueries(["taskItemTags", taskId]);
+    },
+  });
+};

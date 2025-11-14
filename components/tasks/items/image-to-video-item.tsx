@@ -11,8 +11,8 @@ import {
   useSetItemLocked,
 } from "@/lib/queries/use-task-item";
 import { InstructionInput } from "../instruction-input";
-import { ItemTagsDisplay } from "./item-tags-display";
 import { cn } from "@/lib/utils";
+import { TaskItemTagEditor } from "../tags/task-item-tag-editor";
 
 export function ImageToVideoItem({
   taskId,
@@ -171,7 +171,11 @@ export function ImageToVideoItem({
             hasVideo
           />
 
-          <ItemTagsDisplay tags={item.tags} />
+          <TaskItemTagEditor
+            taskId={taskId}
+            itemId={item.id}
+            disabled={item.locked}
+          />
         </div>
       </CardContent>
     </Card>

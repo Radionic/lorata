@@ -13,7 +13,7 @@ import {
   useSetItemLocked,
 } from "@/lib/queries/use-task-item";
 import { InstructionInput } from "../instruction-input";
-import { ItemTagsDisplay } from "./item-tags-display";
+import { TaskItemTagEditor } from "@/components/tasks/tags/task-item-tag-editor";
 import { cn } from "@/lib/utils";
 import { Label } from "@/components/ui/label";
 
@@ -239,7 +239,11 @@ export function ImageEditItem({
           onSettle={handleInstructionSettled}
         />
 
-        <ItemTagsDisplay tags={item.tags} />
+        <TaskItemTagEditor
+          taskId={taskId}
+          itemId={item.id}
+          disabled={item.locked}
+        />
       </CardContent>
     </Card>
   );

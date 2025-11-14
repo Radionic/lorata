@@ -11,7 +11,7 @@ import {
   useSetItemLocked,
 } from "@/lib/queries/use-task-item";
 import { InstructionInput } from "../instruction-input";
-import { ItemTagsDisplay } from "./item-tags-display";
+import { TaskItemTagEditor } from "@/components/tasks/tags/task-item-tag-editor";
 import { cn } from "@/lib/utils";
 
 export function TextToVideoItem({
@@ -140,7 +140,11 @@ export function TextToVideoItem({
             hasVideo
           />
 
-          <ItemTagsDisplay tags={item.tags} />
+          <TaskItemTagEditor
+            taskId={taskId}
+            itemId={item.id}
+            disabled={item.locked}
+          />
         </div>
       </CardContent>
     </Card>
