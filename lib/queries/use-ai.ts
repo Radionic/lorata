@@ -31,6 +31,7 @@ export const useAICaptioning = () => {
           overwrite,
           videoOptions,
           mediaSelection,
+          operation: "caption",
         }),
       });
       if (!response.ok) {
