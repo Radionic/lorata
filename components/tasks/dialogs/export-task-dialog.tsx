@@ -43,9 +43,12 @@ export function ExportTaskDialog({
   const [suffix, setSuffix] = useState<string>(task.suffix || "");
 
   const [useFirstFrame, setUseFirstFrame] = useLocalStorage<boolean>(
-    "useFirstFrame",
+    "use-first-frame",
     true
   );
+
+  const [useSingleLineInstruction, setUseSingleLineInstruction] =
+    useLocalStorage<boolean>("use-single-line-instruction", true);
 
   const { mutateAsync: exportTask } = useExportTask();
   const { mutate: updateTaskSettings } = useUpdateTaskSettings();
@@ -66,6 +69,7 @@ export function ExportTaskDialog({
         crf,
         preset,
         useFirstFrame,
+        useSingleLineInstruction,
       }),
       {
         loading: "Exporting...",
@@ -201,6 +205,17 @@ export function ExportTaskDialog({
             </Label>
           </div>
         )}
+
+        <div className="flex items-center gap-2">
+          <Switch
+            id="use-single-line-instruction"
+            checked={useSingleLineInstruction}
+            onCheckedChange={setUseSingleLineInstruction}
+          />
+          <Label htmlFor="use-single-line-instruction" className="flex-1">
+            Export single line instruction
+          </Label>
+        </div>
 
         <DialogFooter>
           <Button

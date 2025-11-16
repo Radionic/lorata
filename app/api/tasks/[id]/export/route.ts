@@ -19,9 +19,14 @@ import { existsSync } from "fs";
 function applyAffixes(
   instruction: string,
   prefix?: string | null,
-  suffix?: string | null
+  suffix?: string | null,
+  useSingleLineInstruction?: boolean
 ): string {
-  return `${prefix || ""}${instruction}${suffix || ""}`;
+  let text = `${prefix || ""}${instruction}${suffix || ""}`;
+  if (useSingleLineInstruction) {
+    text = text.replace(/\n+/g, " ").replace(/\s+/g, " ").trim();
+  }
+  return text;
 }
 
 export async function POST(
@@ -38,6 +43,7 @@ export async function POST(
   const crf = body?.crf ? parseFloat(body.crf) : undefined;
   const preset = body?.preset;
   const useFirstFrame = body?.useFirstFrame ?? false;
+  const useSingleLineInstruction = body?.useSingleLineInstruction ?? false;
 
   const [task] = await db
     .select()
@@ -121,9 +127,17 @@ export async function POST(
             name: `targets/${firstSourceImageInfo.name}${targetImageInfo.extension}`,
           });
 
-          archive.append(applyAffixes(itemData.instruction, prefix, suffix), {
-            name: `instructions/${firstSourceImageInfo.name}.txt`,
-          });
+          archive.append(
+            applyAffixes(
+              itemData.instruction,
+              prefix,
+              suffix,
+              useSingleLineInstruction
+            ),
+            {
+              name: `instructions/${firstSourceImageInfo.name}.txt`,
+            }
+          );
         }
       })
       .with("text-to-image", async () => {
@@ -138,9 +152,17 @@ export async function POST(
           archive.file(imageInfo.absolutePath, {
             name: `images/${image}`,
           });
-          archive.append(applyAffixes(itemData.instruction, prefix, suffix), {
-            name: `instructions/${imageInfo.name}.txt`,
-          });
+          archive.append(
+            applyAffixes(
+              itemData.instruction,
+              prefix,
+              suffix,
+              useSingleLineInstruction
+            ),
+            {
+              name: `instructions/${imageInfo.name}.txt`,
+            }
+          );
         }
       })
       .with("text-to-video", async () => {
@@ -163,9 +185,17 @@ export async function POST(
           archive.file(videoPath, {
             name: `videos/${video}`,
           });
-          archive.append(applyAffixes(itemData.instruction, prefix, suffix), {
-            name: `instructions/${videoInfo.name}.txt`,
-          });
+          archive.append(
+            applyAffixes(
+              itemData.instruction,
+              prefix,
+              suffix,
+              useSingleLineInstruction
+            ),
+            {
+              name: `instructions/${videoInfo.name}.txt`,
+            }
+          );
         }
       })
       .with("image-to-video", async () => {
@@ -212,9 +242,17 @@ export async function POST(
           archive.file(targetPath, {
             name: `targets/${sourceInfo.name}${targetInfo.extension}`,
           });
-          archive.append(applyAffixes(itemData.instruction, prefix, suffix), {
-            name: `instructions/${sourceInfo.name}.txt`,
-          });
+          archive.append(
+            applyAffixes(
+              itemData.instruction,
+              prefix,
+              suffix,
+              useSingleLineInstruction
+            ),
+            {
+              name: `instructions/${sourceInfo.name}.txt`,
+            }
+          );
         }
       })
       .exhaustive();
@@ -224,7 +262,7 @@ export async function POST(
     const zipBuffer = await zipPromise;
     const filename = `export-${task.name}-${Date.now()}.zip`;
 
-    return new NextResponse(zipBuffer, {
+    return new NextResponse(new Uint8Array(zipBuffer), {
       status: 200,
       headers: {
         "Content-Type": "application/zip",
