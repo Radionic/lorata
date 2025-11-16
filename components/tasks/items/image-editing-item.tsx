@@ -15,7 +15,6 @@ import {
 import { InstructionInput } from "../instruction-input";
 import { TaskItemTagEditor } from "@/components/tasks/tags/task-item-tag-editor";
 import { cn } from "@/lib/utils";
-import { Label } from "@/components/ui/label";
 
 export function ImageEditItem({
   item,
@@ -148,16 +147,6 @@ export function ImageEditItem({
       <div className="absolute top-2 right-2 flex gap-1 items-center">
         <Button
           variant="ghost"
-          size="sm"
-          className="h-8 w-8 text-muted-foreground"
-          onClick={addSourceImageSlot}
-          disabled={item.locked}
-        >
-          <Plus className="h-4 w-4" />
-        </Button>
-
-        <Button
-          variant="ghost"
           size="icon"
           className={cn(
             "h-8 w-8 text-muted-foreground hover:text-primary hover:bg-primary/10",
@@ -183,49 +172,82 @@ export function ImageEditItem({
           <Trash2 className="h-4 w-4" />
         </Button>
       </div>
-      <CardContent className="px-0 pb-0 pt-0 space-y-4">
-        <div className="space-y-2">
-          <Label>Source Images</Label>
-          <div className="grid grid-cols-2 gap-4 mt-4">
-            {sourceImages.map((sourceImage, index) => (
-              <MediaUploadArea
-                taskId={taskId}
-                media={getMediaUrl({ taskId, filename: sourceImage })}
-                label={`Source Image ${index + 1}`}
-                type="image"
-                disabled={item.locked}
-                onMediaUploaded={handleSourceImageUploaded}
-                onMediaRemoved={() => handleSourceImageRemoved(sourceImage)}
-                allowRemoveItem={allowRemoveItem}
-              />
-            ))}
-            {/* Extra empty slots added by the "+ Add Image" button */}
-            {extraSlots > 0 &&
-              Array.from({ length: extraSlots }).map((_, idx) => (
+      <CardContent className="px-0 pb-0 pt-8 space-y-4">
+        <div className="grid grid-cols-2 gap-4">
+          {sourceImages.map((sourceImage, index) => {
+            const isLastSourceImage =
+              index === sourceImages.length - 1 && extraSlots === 0;
+            return (
+              <div key={sourceImage} className="relative">
                 <MediaUploadArea
-                  key={`extra-${idx}`}
                   taskId={taskId}
-                  media={undefined}
-                  label={`Source Image ${sourceImages.length + idx + 1}`}
+                  media={getMediaUrl({ taskId, filename: sourceImage })}
+                  label={`Source Image ${index + 1}`}
                   type="image"
                   disabled={item.locked}
                   onMediaUploaded={handleSourceImageUploaded}
-                  onItemRemoved={handleEmptySlotRemoved}
-                  allowRemoveItem={allowRemoveItem}
+                  onMediaRemoved={() => handleSourceImageRemoved(sourceImage)}
+                  allowRemoveItem={true}
+                  disableRemoveItem={!allowRemoveItem}
                 />
-              ))}
+                {isLastSourceImage && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="absolute top-0 right-7 h-6 w-6 text-muted-foreground"
+                    onClick={addSourceImageSlot}
+                    disabled={item.locked}
+                  >
+                    <Plus className="h-3 w-3" />
+                  </Button>
+                )}
+              </div>
+            );
+          })}
+          {/* Extra empty slots added by the "+ Add Image" button */}
+          {extraSlots > 0 &&
+            Array.from({ length: extraSlots }).map((_, idx) => {
+              const isLastExtraSlot = idx === extraSlots - 1;
+              return (
+                <div key={`extra-${idx}`} className="relative">
+                  <MediaUploadArea
+                    taskId={taskId}
+                    media={undefined}
+                    label={`Source Image ${sourceImages.length + idx + 1}`}
+                    type="image"
+                    disabled={item.locked}
+                    onMediaUploaded={handleSourceImageUploaded}
+                    onItemRemoved={handleEmptySlotRemoved}
+                    allowRemoveItem={true}
+                    disableRemoveItem={!allowRemoveItem}
+                  />
+                  {isLastExtraSlot && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="absolute top-0 right-7 h-6 w-6 text-muted-foreground"
+                      onClick={addSourceImageSlot}
+                      disabled={item.locked}
+                    >
+                      <Plus className="h-3 w-3" />
+                    </Button>
+                  )}
+                </div>
+              );
+            })}
+          {/* Target Image */}
+          <div className="relative">
+            <MediaUploadArea
+              taskId={taskId}
+              media={targetImageUrl}
+              label="Target Image"
+              type="image"
+              disabled={item.locked}
+              onMediaUploaded={({ file }) => handleTargetImageUploaded(file)}
+              onMediaRemoved={handleTargetImageRemoved}
+            />
           </div>
         </div>
-
-        <MediaUploadArea
-          taskId={taskId}
-          media={targetImageUrl}
-          label="Target Image"
-          type="image"
-          disabled={item.locked}
-          onMediaUploaded={({ file }) => handleTargetImageUploaded(file)}
-          onMediaRemoved={handleTargetImageRemoved}
-        />
 
         <InstructionInput
           key={item.data.instruction}

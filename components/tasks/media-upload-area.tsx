@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { Upload, X, Loader2, Clipboard } from "lucide-react";
+import { Upload, Loader2, Clipboard, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
@@ -118,6 +118,7 @@ interface MediaUploadAreaProps {
   label: string;
   type: "image" | "video";
   allowRemoveItem?: boolean;
+  disableRemoveItem?: boolean;
   disabled?: boolean;
   onMediaUploaded?: ({
     file,
@@ -136,6 +137,7 @@ export function MediaUploadArea({
   label,
   type,
   allowRemoveItem,
+  disableRemoveItem,
   disabled,
   onMediaUploaded,
   onMediaRemoved,
@@ -203,7 +205,7 @@ export function MediaUploadArea({
 
   return (
     <div className="flex-1">
-      <div className="flex items-center justify-between mb-1">
+      <div className="flex items-center justify-between mb-1 min-h-6">
         <Label className="text-sm font-medium block">{label}</Label>
         {allowRemoveItem && (
           <Button
@@ -214,9 +216,9 @@ export function MediaUploadArea({
               _removeMedia();
               onItemRemoved?.();
             }}
-            disabled={disabled}
+            disabled={disabled || disableRemoveItem}
           >
-            <X className="h-3 w-3" />
+            <Trash2 className="h-3 w-3" />
           </Button>
         )}
       </div>
@@ -257,7 +259,7 @@ export function MediaUploadArea({
               {isDeleting ? (
                 <Loader2 className="h-3 w-3 animate-spin" />
               ) : (
-                <X className="h-3 w-3" />
+                <Trash2 className="h-3 w-3" />
               )}
             </Button>
           </div>
