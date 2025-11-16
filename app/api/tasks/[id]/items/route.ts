@@ -7,7 +7,7 @@ import {
   tagsTable,
   taskItemTagsTable,
 } from "@/lib/db/schema";
-import { eq, desc, exists } from "drizzle-orm";
+import { eq, desc, exists, count, and, inArray, sql } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { match } from "ts-pattern";
 
@@ -28,41 +28,67 @@ export async function GET(
         .map((t) => t.trim())
         .filter(Boolean)
     : [];
-  const items = await db.query.taskItemsTable.findMany({
-    where: (taskItem, { and, eq, inArray, sql }) => {
-      const baseCondition = eq(taskItem.taskId, taskId);
+  const page = Math.max(1, parseInt(searchParams.get("page") || "1", 10));
+  const limit = Math.max(
+    1,
+    Math.min(100, parseInt(searchParams.get("limit") || "20", 10))
+  );
+  const offset = (page - 1) * limit;
 
-      if (filterTagNames.length === 0) {
-        return baseCondition;
-      }
-
-      // Build a single correlated subquery over the junction table
-      const tagsSubquery = db
-        .select({ taskItemId: taskItemTagsTable.taskItemId })
-        .from(taskItemTagsTable)
-        .innerJoin(tagsTable, eq(tagsTable.id, taskItemTagsTable.tagId))
-        .where(
-          and(
-            eq(taskItemTagsTable.taskItemId, taskItem.id),
-            inArray(tagsTable.name, filterTagNames)
-          )
+  // Build base WHERE condition used for both count and items queries
+  const buildTagsSubquery = (taskItemIdColumn: typeof taskItemsTable.id) =>
+    db
+      .select({ taskItemId: taskItemTagsTable.taskItemId })
+      .from(taskItemTagsTable)
+      .innerJoin(tagsTable, eq(tagsTable.id, taskItemTagsTable.tagId))
+      .where(
+        and(
+          eq(taskItemTagsTable.taskItemId, taskItemIdColumn),
+          inArray(tagsTable.name, filterTagNames)
         )
-        .groupBy(taskItemTagsTable.taskItemId)
-        .having(
-          sql`COUNT(DISTINCT ${tagsTable.name}) = ${filterTagNames.length}`
-        );
+      )
+      .groupBy(taskItemTagsTable.taskItemId)
+      .having(
+        sql`COUNT(DISTINCT ${tagsTable.name}) = ${filterTagNames.length}`
+      );
 
-      return and(baseCondition, exists(tagsSubquery));
-    },
-    with: {
-      taskItemTags: {
-        with: {
-          tag: true,
+  const [counting, items] = await Promise.all([
+    // Count items
+    db
+      .select({ count: count() })
+      .from(taskItemsTable)
+      .where(
+        filterTagNames.length === 0
+          ? eq(taskItemsTable.taskId, taskId)
+          : and(
+              eq(taskItemsTable.taskId, taskId),
+              exists(buildTagsSubquery(taskItemsTable.id))
+            )
+      ),
+    // Get paginated items
+    db.query.taskItemsTable.findMany({
+      where: (taskItem) =>
+        filterTagNames.length === 0
+          ? eq(taskItem.taskId, taskId)
+          : and(
+              eq(taskItem.taskId, taskId),
+              exists(buildTagsSubquery(taskItem.id as typeof taskItemsTable.id))
+            ),
+      with: {
+        taskItemTags: {
+          with: {
+            tag: true,
+          },
         },
       },
-    },
-    orderBy: [desc(taskItemsTable.createdAt)],
-  });
+      orderBy: [desc(taskItemsTable.createdAt)],
+      limit,
+      offset,
+    }),
+  ]);
+
+  const total = counting[0]?.count ?? 0;
+  const totalPages = Math.ceil(total / limit);
 
   return NextResponse.json({
     items: items.map((item) => ({
@@ -73,6 +99,10 @@ export async function GET(
       })),
       taskItemTags: undefined, // Remove nested structure
     })),
+    pagination: {
+      total,
+      totalPages,
+    },
   });
 }
 

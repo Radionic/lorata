@@ -2,33 +2,51 @@ import { useQuery, useMutation, useQueryClient } from "react-query";
 import { TaskItem } from "@/lib/types";
 import { toast } from "sonner";
 
+export interface PaginationMeta {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+}
+
+export interface TaskItemsResponse<T extends TaskItem> {
+  items: T[];
+  pagination: PaginationMeta;
+}
+
 export const useTaskItems = <T extends TaskItem>(
   taskId: string,
-  filterTags?: string[]
+  filterTags?: string[],
+  page: number = 1,
+  limit: number = 20
 ) => {
-  return useQuery<T[], Error>({
-    queryKey: ["taskItems", taskId, filterTags],
+  return useQuery<TaskItemsResponse<T>, Error>({
+    queryKey: ["taskItems", taskId, filterTags, page, limit],
     queryFn: async () => {
       const params = new URLSearchParams();
       if (filterTags && filterTags.length > 0) {
         params.set("tags", filterTags.join(","));
       }
+      params.set("page", page.toString());
+      params.set("limit", limit.toString());
 
-      const url = `/api/tasks/${taskId}/items${
-        params.toString() ? `?${params.toString()}` : ""
-      }`;
+      const url = `/api/tasks/${taskId}/items?${params.toString()}`;
       const response = await fetch(url);
 
       if (!response.ok) {
         const error = await response.json();
         toast.error(error.error || "Failed to fetch task items");
-        return [];
+        return {
+          items: [],
+          pagination: { total: 0, totalPages: 0 },
+        };
       }
 
       const data = await response.json();
-      return data.items;
+      return data;
     },
     enabled: !!taskId,
+    keepPreviousData: true,
   });
 };
 
