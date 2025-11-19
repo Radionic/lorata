@@ -196,7 +196,7 @@ export async function POST(req: Request) {
       continue;
     }
 
-    const { text } = await generateText({
+    const { text, finishReason } = await generateText({
       model: aiProvider(process.env.OPENAI_API_MODEL!),
       messages: [
         {
@@ -211,6 +211,11 @@ export async function POST(req: Request) {
         },
       ],
     });
+
+    if (finishReason !== "stop") {
+      console.warn("Generation did not complete, finish reason:", finishReason);
+      continue;
+    }
 
     if (operation === "caption") {
       await db
