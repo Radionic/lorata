@@ -6,7 +6,7 @@ import { TagFilter } from "@/components/tasks/tags/tag-filter";
 interface TaskItemTagFilterProps {
   taskId: string;
   selectedTags: string[];
-  onTagsChange: (tags: string[]) => void;
+  onTagsChange?: (tags: string[]) => void;
 }
 
 export function TaskItemTagFilter({

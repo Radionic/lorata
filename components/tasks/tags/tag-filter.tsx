@@ -16,7 +16,7 @@ interface TagFilterProps {
   tags?: TagFilterTag[];
   isLoading: boolean;
   selectedTags: string[];
-  onTagsChange: (tags: string[]) => void;
+  onTagsChange?: (tags: string[]) => void;
 }
 
 export function TagFilter({
@@ -28,14 +28,14 @@ export function TagFilter({
 }: TagFilterProps) {
   const toggleTag = (tagName: string) => {
     if (selectedTags.includes(tagName)) {
-      onTagsChange(selectedTags.filter((t) => t !== tagName));
+      onTagsChange?.(selectedTags.filter((t) => t !== tagName));
     } else {
-      onTagsChange([...selectedTags, tagName]);
+      onTagsChange?.([...selectedTags, tagName]);
     }
   };
 
   const clearAllTags = () => {
-    onTagsChange([]);
+    onTagsChange?.([]);
   };
 
   if (isLoading) {

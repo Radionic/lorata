@@ -52,7 +52,7 @@ export function TaskActionButtons({
           <TaskItemTagFilter
             taskId={task.id}
             selectedTags={selectedTags}
-            onTagsChange={(tags) => onTagsChange?.(tags)}
+            onTagsChange={onTagsChange}
           />
         </PopoverContent>
       </Popover>

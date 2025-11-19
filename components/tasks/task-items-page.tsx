@@ -1,18 +1,14 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useParams } from "next/navigation";
 import { ImageEditItem } from "@/components/tasks/items/image-editing-item";
-import { useTaskItems } from "@/lib/queries/use-task-item";
+import { TaskItemsResponse } from "@/lib/queries/use-task-item";
 import {
   ImageEditingTaskItem,
-  Task,
   TextToImageTaskItem,
   TextToVideoTaskItem,
   ImageToVideoTaskItem,
 } from "@/lib/types";
-import { LoadingErrorState } from "@/components/loading-error-state";
-import { useRouter } from "next/navigation";
 import { match } from "ts-pattern";
 import { TextToImageItem } from "./items/text-to-image-item";
 import { TextToVideoItem } from "./items/text-to-video-item";
@@ -32,50 +28,41 @@ import {
 } from "@/components/ui/pagination";
 import { Input } from "@/components/ui/input";
 import { Label } from "../ui/label";
+import { TaskItem } from "@/lib/db/schema";
 
 export function TaskItemsPage({
-  task,
-  selectedTags = [],
+  taskId,
+  taskType,
+  taskItems,
+  page,
+  setPage,
 }: {
-  task?: Task;
-  selectedTags?: string[];
+  taskId: string;
+  taskType?:
+    | "text-to-image"
+    | "image-editing"
+    | "text-to-video"
+    | "image-to-video";
+  taskItems?: TaskItemsResponse<TaskItem>;
+  page: number;
+  setPage: (newPage: number) => void;
 }) {
-  const router = useRouter();
-  const params = useParams();
-  const taskId = params.id as string;
-  const [page, setPage] = useState(1);
   const [pageInput, setPageInput] = useState("");
-  const limit = 30;
 
-  const { data, isLoading, error } = useTaskItems(
-    taskId,
-    selectedTags,
-    page,
-    limit
-  );
-  const items = data?.items;
-  const pagination = data?.pagination;
+  const items = taskItems?.items;
+  const pagination = taskItems?.pagination;
 
   const [showI2VExportBanner, setShowI2VExportBanner] = useLocalStorage(
     "show-i2v-export-banner",
     true
   );
 
-  // Reset page when filters change
-  useEffect(() => {
-    setPage(1);
-  }, [selectedTags]);
-
   // Scroll to top when page changes
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "instant" });
   }, [page]);
 
-  if (!task) {
-    return null;
-  }
-
-  if (!isLoading && !items?.length) {
+  if (!taskType || !items?.length) {
     return (
       <p className="text-center text-lg text-muted-foreground">
         No items found
@@ -84,14 +71,8 @@ export function TaskItemsPage({
   }
 
   return (
-    <LoadingErrorState
-      loadingMessage="Loading task items..."
-      errorTitle="Error loading task items"
-      onRetry={router.refresh}
-      isLoading={isLoading}
-      error={error}
-    >
-      {task.type === "image-to-video" && showI2VExportBanner && (
+    <>
+      {taskType === "image-to-video" && showI2VExportBanner && (
         <div className="mb-8 flex items-center gap-2 rounded-md bg-blue-500/10 border border-blue-500/20 px-3 py-2 text-sm text-blue-700">
           <Info className="h-4 w-4 mt-0.5 shrink-0" />
           <p className="flex-1">
@@ -112,12 +93,12 @@ export function TaskItemsPage({
       <div
         className={cn(
           "grid gap-6",
-          task.type === "text-to-image" || task.type === "text-to-video"
+          taskType === "text-to-image" || taskType === "text-to-video"
             ? "grid-cols-2 md:grid-cols-3 lg:grid-cols-4"
             : "grid-cols-1 md:grid-cols-2 lg:grid-cols-3"
         )}
       >
-        {match(task.type)
+        {match(taskType)
           .with("text-to-image", () =>
             items?.map((item) => (
               <TextToImageItem
@@ -163,7 +144,7 @@ export function TaskItemsPage({
             <PaginationContent>
               <PaginationItem>
                 <PaginationPrevious
-                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  onClick={() => setPage(Math.max(1, page - 1))}
                   className={cn(
                     page === 1 && "pointer-events-none opacity-50",
                     "cursor-pointer"
@@ -234,7 +215,7 @@ export function TaskItemsPage({
               <PaginationItem>
                 <PaginationNext
                   onClick={() =>
-                    setPage((p) => Math.min(pagination.totalPages, p + 1))
+                    setPage(Math.min(pagination.totalPages, page + 1))
                   }
                   className={cn(
                     page === pagination.totalPages &&
@@ -277,6 +258,6 @@ export function TaskItemsPage({
           </Pagination>
         </div>
       )}
-    </LoadingErrorState>
+    </>
   );
 }
